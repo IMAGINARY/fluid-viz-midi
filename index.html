@@ -22,6 +22,11 @@
         <meta property="og:image" content="https://paveldogreat.github.io/WebGL-Fluid-Simulation/logo.png">
 
         <script type="text/javascript" src="dat.gui.min.js"></script>
+        <script type="text/javascript" src="tween.umd.js"></script>
+        <script type="module">
+            import {Bezier} from './Bezier.js';
+            window.Bezier = Bezier;
+        </script>
         <style>
             @font-face {
                 font-family: 'iconfont';
@@ -213,6 +218,6 @@
             </div>
         </div>
 
-        <script src="./script.js"></script>
+        <script src="./script.js" defer></script>
     </body>
 </html>

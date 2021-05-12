@@ -1592,4 +1592,113 @@ function hashCode (s) {
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
-};
+}
+
+function randomPoint() {
+    return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+    };
+}
+
+function randomSpline(numSegments) {
+    let lastC = randomPoint();
+    let lastP = randomPoint();
+    const segments = [];
+    while (numSegments > 0) {
+        const p0 = lastP;
+        const c0 = lastP - (lastC - lastP);
+        const c1 = randomPoint();
+        const p1 = randomPoint();
+        const bezier = new Bezier(p0, c0, c1, p1);
+        lastC = c1;
+        lastP = p1;
+        segments.push(bezier);
+        --numSegments;
+    }
+    return segments;
+}
+
+function tToSegmentT(segments, t) {
+    const segmentId = t >= segments.length ? segments.length - 1 : Math.floor(t);
+    return {
+        id: segmentId,
+        segment: segments[segmentId],
+        t: t - segmentId,
+    }
+}
+
+function splatPointerIfMoved(pointer) {
+    if (pointer.moved) {
+        pointer.moved = false;
+        splatPointer(pointer);
+    }
+}
+
+function startSplineSplash(segments, globalT) {
+    const {segment, t} = tToSegmentT(segments, 0);
+    const {x, y} = segment.get(t);
+    let posX = scaleByPixelRatio(x);
+    let posY = scaleByPixelRatio(y);
+    const pointer = new pointerPrototype();
+    updatePointerDownData(pointer, -2, posX, posY);
+    splatPointerIfMoved(pointer);
+    return pointer;
+}
+
+function updateSplineSplash(segments, globalT, pointer) {
+    const {segment, t} = tToSegmentT(segments, globalT);
+    const {x, y} = segment.get(t);
+    let posX = scaleByPixelRatio(x);
+    let posY = scaleByPixelRatio(y);
+    console.log({segment, t, x, y, posX, posY});
+    updatePointerMoveData(pointer, posX, posY);
+    splatPointerIfMoved(pointer);
+}
+
+function completeSplineSplash(pointer) {
+    updatePointerUpData(pointer);
+}
+
+function addSplineSplash(numSegments, duration) {
+    const segments = randomSpline(numSegments);
+    console.log(segments);
+
+    let pointer = new pointerPrototype();
+
+    const tween = new TWEEN.Tween({t: 0})
+        .to({t: segments.length}, duration)
+        .onStart(({t}) => {
+            pointer = startSplineSplash(segments, t);
+        })
+        .onUpdate(({t}) => {
+            updateSplineSplash(segments, t, pointer)
+        })
+        .onComplete(() => completeSplineSplash(pointer))
+        .onStop(() => {
+        });
+    tween.start();
+
+    return {segments, tween};
+}
+
+function addRandomSplineSplash(maxSegments = 3, minDuration = 200, maxDuration = 3000) {
+    const numSegments = 1 + Math.floor((maxSegments) * Math.random());
+    const duration = numSegments * (minDuration + (maxDuration - minDuration) * Math.random());
+    const splineSplash = addSplineSplash(numSegments, duration);
+    return {splineSplash, duration};
+}
+
+function idle() {
+    const {duration} = addRandomSplineSplash();
+    setTimeout(idle, (10 * 1000 + duration) * Math.random());
+}
+
+idle();
+
+function animateIdle(timeMs) {
+    TWEEN.update(timeMs);
+    requestAnimationFrame(animateIdle);
+}
+
+requestAnimationFrame(animateIdle);
