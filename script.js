@@ -1672,6 +1672,7 @@ function addSplineSplash(numSegments, duration) {
 
     const tween = new TWEEN.Tween({t: 0}, splineSplashTweenGroup)
         .to({t: segments.length}, duration)
+        .easing(TWEEN.Easing.Quadratic.In)
         .onStart(({t}) => {
             pointer = startSplineSplash(segments, t);
         })
