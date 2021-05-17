@@ -1686,7 +1686,7 @@ function addSplineSplash(numSegments, duration) {
     return {segments, tween};
 }
 
-function addRandomSplineSplash(maxSegments = 3, minDuration = 200, maxDuration = 3000) {
+function addRandomSplineSplash(maxSegments = 3, minDuration = 800, maxDuration = 3000) {
     const numSegments = 1 + Math.floor((maxSegments) * Math.random());
     const duration = numSegments * (minDuration + (maxDuration - minDuration) * Math.random());
     const splineSplash = addSplineSplash(numSegments, duration);
