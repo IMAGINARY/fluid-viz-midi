@@ -52,10 +52,59 @@
                 width: 100%;
                 height: 100%;
             }
+
+            #touch-icons {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            .touch-icon {
+                position: absolute;
+                top: 64px;
+                left: 64px;
+            }
+
+            .touch-icon:after {
+                content: '';
+                /* icon based on https://thenounproject.com/term/one-finger-touch/131168/ */
+                background: url("data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9JzMwMHB4JyB3aWR0aD0nMzAwcHgnICBmaWxsPSIjRkZGRkZGIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2ZXJzaW9uPSIxLjEiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMTAwIDEwMCIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PGc+PHBhdGggZD0iTTMyLjUsMzEuOWMwLjktMC42LDEuMy0xLjgsMC43LTIuN2MtMC45LTEuNS0xLjMtMy4xLTEuMy00LjhjMC01LjIsNC4zLTkuNSw5LjUtOS41czkuNSw0LjMsOS41LDkuNSAgIGMwLDEuNy0wLjUsMy40LTEuMyw0LjhjLTAuNiwwLjktMC4zLDIuMiwwLjcsMi43YzAuMywwLjIsMC43LDAuMywxLDAuM2MwLjcsMCwxLjMtMC4zLDEuNy0xYzEuMi0yLjEsMS45LTQuNSwxLjktNi45ICAgYzAtNy40LTYuMS0xMy41LTEzLjUtMTMuNXMtMTMuNSw2LjEtMTMuNSwxMy41YzAsMi40LDAuNyw0LjgsMS45LDYuOUMzMC4zLDMyLjIsMzEuNSwzMi41LDMyLjUsMzEuOXoiPjwvcGF0aD48cGF0aCBkPSJNNjcuMyw0My40Yy0wLjgsMC0xLjUsMC4xLTIuMywwLjRjLTAuMy0xLjMtMC44LTIuNS0xLjUtMy40Yy0xLjEtMS4zLTIuNi0yLTQuMy0yYy0xLjEsMC0yLjIsMC4zLTMuMiwxICAgYy0wLjMtMC41LTAuNy0xLTEtMS4zYy0xLjItMS4yLTIuOC0xLjktNC41LTEuOWMtMC45LDAtMS44LDAuMi0yLjcsMC42di0xMmMwLTIuNy0xLjEtNC40LTItNS4zYy0xLjItMS4yLTIuOC0xLjktNC41LTEuOSAgIGMtMy4yLDAtNi43LDIuNS02LjcsNy4yVjQyYy0zLjUsMS4yLTguMiw0LjMtOC4yLDEwLjN2MTIuMnYwLjFjMCwwLjEsMCwwLjEsMCwwLjJzMCwwLjEsMCwwLjJzMCwwLjEsMC4xLDAuMiAgIGMwLDAuMSwwLjEsMC4xLDAuMSwwLjJzMC4xLDAuMSwwLjEsMC4yczAuMSwwLjEsMC4xLDAuMmMwLDAsMCwwLjEsMC4xLDAuMWw3LjgsOC42djE1LjZjMCwxLjEsMC45LDIsMiwyaDMwLjljMS4xLDAsMi0wLjksMi0yICAgVjc0LjNsMy41LTcuNmMwLjEtMC4zLDAuMi0wLjUsMC4yLTAuOHYtMTZDNzMuNCw0NS42LDcwLjMsNDMuNCw2Ny4zLDQzLjR6IE02OS40LDY1LjRMNjUuOSw3M2MtMC4xLDAuMy0wLjIsMC41LTAuMiwwLjh2MTQuMUgzOC45ICAgdi01LjJoMjAuOGMxLjEsMCwyLTAuOSwyLTJzLTAuOS0yLTItMkgzOC45di01LjJjMC0wLjUtMC4yLTEtMC41LTEuM2wtNy44LTguNlY1Mi4yYzAtMy4zLDIuMy01LDQuMi01Ljl2MTEuNmMwLDEuMSwwLjksMiwyLDIgICBzMi0wLjksMi0yVjQzLjVsMCwwVjI0LjljMC0zLjIsMy0zLjgsNC4zLTIuNWMwLjUsMC42LDAuOCwxLjQsMC44LDIuNXYyMy41YzAsMS4xLDAuOSwyLDIsMnMyLTAuOSwyLTJ2LTQuOWwwLDAgICBjMC0zLjMsMy0zLjgsNC4zLTIuNWMwLjUsMC42LDAuOCwxLjQsMC44LDIuNXY1LjRjMCwxLjEsMC45LDIsMiwyczItMC45LDItMnYtMy4xYzAtMi4yLDEuMS0zLjIsMi4yLTMuMmMwLjMsMCwwLjgsMC4xLDEuMiwwLjYgICBjMC41LDAuNiwwLjcsMS41LDAuNywyLjZWNTBjMCwxLjEsMC45LDIsMiwyYzEuMSwwLDItMC45LDItMmwwLDBjMC0xLjksMS4xLTIuNSwyLjEtMi41czIuMSwwLjcsMi4xLDIuNUw2OS40LDY1LjRMNjkuNCw2NS40eiI+PC9wYXRoPjwvZz48L3N2Zz4=");
+                display: block;
+                width: 64px;
+                height: 64px;
+                position: relative;
+                top: -16px;
+                left: -27px;
+                background-size: contain;
+            }
+
+            .fade-in-fast {
+                transition: opacity 0.5s;
+                opacity: 1.0;
+            }
+
+            .fade-in-slow {
+                transition: opacity 2s;
+                opacity: 1.0;
+            }
+
+            .fade-out-fast {
+                transition: opacity 0.5s;
+                opacity: 0.0;
+            }
+
+            .fade-out-slow {
+                transition: opacity 2s;
+                opacity: 0.0;
+            }
         </style>
     </head>
     <body>
         <canvas></canvas>
+        <div id="touch-icons"></div>
         <script src="./script.js" defer></script>
     </body>
 </html>
+
