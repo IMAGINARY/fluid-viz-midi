@@ -83,6 +83,7 @@ function pointerPrototype () {
     this.down = false;
     this.moved = false;
     this.color = [30, 0, 300];
+    this.attenuation = 1.0;
 }
 
 let pointers = [];
@@ -682,11 +683,12 @@ const splatShader = compileShader(gl.FRAGMENT_SHADER, `
     uniform vec3 color;
     uniform vec2 point;
     uniform float radius;
+    uniform float attenuation;
 
     void main () {
         vec2 p = vUv - point.xy;
         p.x *= aspectRatio;
-        vec3 splat = exp(-dot(p, p) / radius) * color;
+        vec3 splat = exp(-dot(p, p) / radius) * color / attenuation;
         vec3 base = texture2D(uTarget, vUv).xyz;
         gl_FragColor = vec4(base + splat, 1.0);
     }
@@ -1370,7 +1372,7 @@ function blur (target, temp, iterations) {
 function splatPointer (pointer) {
     let dx = pointer.deltaX * config.SPLAT_FORCE;
     let dy = pointer.deltaY * config.SPLAT_FORCE;
-    splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
+    splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color, pointer.attenuation);
 }
 
 function multipleSplats (amount) {
@@ -1387,13 +1389,14 @@ function multipleSplats (amount) {
     }
 }
 
-function splat (x, y, dx, dy, color) {
+function splat (x, y, dx, dy, color, attenuation = 1.0) {
     splatProgram.bind();
     gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
     gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
     gl.uniform2f(splatProgram.uniforms.point, x, y);
     gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
     gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
+    gl.uniform1f(splatProgram.uniforms.attenuation, attenuation);
     blit(velocity.write);
     velocity.swap();
 
@@ -1641,6 +1644,7 @@ function startSplineSplash(segments, globalT) {
     let posX = scaleByPixelRatio(x);
     let posY = scaleByPixelRatio(y);
     const pointer = new pointerPrototype();
+    pointer.attenuation = 4.0;
     updatePointerDownData(pointer, -2, posX, posY);
     splatPointerIfMoved(pointer);
     return pointer;
