@@ -1812,7 +1812,10 @@ function animateIdle(timeMs) {
 
 requestAnimationFrame(animateIdle);
 
-const idleTimeout = 3 * 1000;
+const searchParams = new URLSearchParams(window.location.search);
+const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
+const idleTimeout = ( urlIdleTimeout >= 0.0 ? urlIdleTimeout : 20 ) * 1000;
+
 let idleTimeoutId = 0;
 
 function nonIdleHandler() {
