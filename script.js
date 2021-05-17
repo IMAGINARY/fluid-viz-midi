@@ -1655,22 +1655,22 @@ function updateSplineSplash(segments, globalT, pointer) {
     const {x, y} = segment.get(t);
     let posX = scaleByPixelRatio(x);
     let posY = scaleByPixelRatio(y);
-    console.log({segment, t, x, y, posX, posY});
     updatePointerMoveData(pointer, posX, posY);
     splatPointerIfMoved(pointer);
 }
 
-function completeSplineSplash(pointer) {
+function completeOrStopSplineSplash(pointer) {
     updatePointerUpData(pointer);
 }
 
+const splineSplashTweenGroup = new TWEEN.Group();
+
 function addSplineSplash(numSegments, duration) {
     const segments = randomSpline(numSegments);
-    console.log(segments);
 
     let pointer = new pointerPrototype();
 
-    const tween = new TWEEN.Tween({t: 0})
+    const tween = new TWEEN.Tween({t: 0}, splineSplashTweenGroup)
         .to({t: segments.length}, duration)
         .onStart(({t}) => {
             pointer = startSplineSplash(segments, t);
@@ -1678,9 +1678,8 @@ function addSplineSplash(numSegments, duration) {
         .onUpdate(({t}) => {
             updateSplineSplash(segments, t, pointer)
         })
-        .onComplete(() => completeSplineSplash(pointer))
-        .onStop(() => {
-        });
+        .onComplete(() => completeOrStopSplineSplash(pointer))
+        .onStop(() => completeOrStopSplineSplash(pointer));
     tween.start();
 
     return {segments, tween};
@@ -1726,16 +1725,18 @@ function updateLineSplash(line, t, pointer) {
     splatPointerIfMoved(pointer);
 }
 
-function completeLineSplash(pointer) {
+function completeOrStopLineSplash(pointer) {
     updatePointerUpData(pointer);
 }
+
+const lineSplashTweenGroup = new TWEEN.Group();
 
 function addLineSplash(length, duration) {
     const line = randomLine(length);
 
     let pointer = new pointerPrototype();
 
-    const tween = new TWEEN.Tween({t: 0})
+    const tween = new TWEEN.Tween({t: 0}, lineSplashTweenGroup)
         .to({t: 1}, duration)
         .easing(TWEEN.Easing.Quadratic.In)
         .onStart(({t}) => {
@@ -1744,9 +1745,8 @@ function addLineSplash(length, duration) {
         .onUpdate(({t}) => {
             updateLineSplash(line, t, pointer)
         })
-        .onComplete(() => completeLineSplash(pointer))
-        .onStop(() => {
-        });
+        .onComplete(() => completeOrStopLineSplash(pointer))
+        .onStop(() => completeOrStopLineSplash(pointer));
     tween.start();
 
     return {line, tween};
@@ -1762,23 +1762,73 @@ function addRandomLineSplash(minDuration = 400, maxDuration = 1600) {
     return {lineSplash, duration};
 }
 
+let idle = false;
+
+let idleLineSplatTimeoutId = 0;
+
 function idleLineSplats() {
     const {duration} = addRandomLineSplash();
-    setTimeout(idleLineSplats, 0.2 * 1000 + duration * Math.random());
+    if (idle) {
+        return setTimeout(idleLineSplats, 0.2 * 1000 + duration * Math.random());
+    } else {
+        return 0;
+    }
 }
 
-idleLineSplats();
+let idleSplineSplatTimeoutId = 0;
 
 function idleSplineSplats() {
     const {duration} = addRandomSplineSplash();
-    setTimeout(idleSplineSplats, (10 * 1000 + duration) * Math.random());
+    if (idle) {
+        return setTimeout(idleSplineSplats, (10 * 1000 + duration) * Math.random());
+    } else {
+        return 0;
+    }
 }
 
-idleSplineSplats();
+function startIdleAnimation() {
+    idle = true;
+    idleLineSplatTimeoutId = idleLineSplats();
+    idleSplineSplatTimeoutId = idleSplineSplats();
+}
+
+function stopIdleAnimation() {
+    idle = false;
+
+    clearTimeout(idleLineSplatTimeoutId);
+    lineSplashTweenGroup.getAll().forEach(tween => tween.stop());
+    lineSplashTweenGroup.removeAll();
+
+    clearTimeout(idleSplineSplatTimeoutId);
+    splineSplashTweenGroup.getAll().forEach(tween => tween.stop());
+    splineSplashTweenGroup.removeAll();
+}
 
 function animateIdle(timeMs) {
-    TWEEN.update(timeMs);
+    lineSplashTweenGroup.update(timeMs);
+    splineSplashTweenGroup.update(timeMs);
     requestAnimationFrame(animateIdle);
 }
 
 requestAnimationFrame(animateIdle);
+
+const idleTimeout = 3 * 1000;
+let idleTimeoutId = 0;
+
+function nonIdleHandler() {
+    stopIdleAnimation();
+    clearTimeout(idleTimeoutId);
+    idleTimeoutId = setTimeout(startIdleAnimation, idleTimeout);
+}
+
+const wakeupEvents = [
+    'pointerdown',
+    'pointermove',
+    'pointerup',
+    'pointercancel',
+    'keydown',
+    'keyup',
+];
+
+wakeupEvents.forEach(type => canvas.addEventListener(type, nonIdleHandler, true));
+nonIdleHandler();
