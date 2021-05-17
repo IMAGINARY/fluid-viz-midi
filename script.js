@@ -1118,7 +1118,7 @@ function updateKeywords () {
 
 updateKeywords();
 initFramebuffers();
-multipleSplats(parseInt(Math.random() * 20) + 5);
+//multipleSplats(parseInt(Math.random() * 20) + 5);
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
@@ -1598,10 +1598,10 @@ function hashCode (s) {
 }
 
 function randomPoint() {
-    return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-    };
+    return new Victor(
+        Math.random() * canvas.width,
+        Math.random() * canvas.height
+    );
 }
 
 function randomSpline(numSegments) {
@@ -1686,19 +1686,95 @@ function addSplineSplash(numSegments, duration) {
     return {segments, tween};
 }
 
-function addRandomSplineSplash(maxSegments = 3, minDuration = 800, maxDuration = 3000) {
+function addRandomSplineSplash(maxSegments = 3, minDuration = 1000, maxDuration = 3000) {
     const numSegments = 1 + Math.floor((maxSegments) * Math.random());
     const duration = numSegments * (minDuration + (maxDuration - minDuration) * Math.random());
     const splineSplash = addSplineSplash(numSegments, duration);
     return {splineSplash, duration};
 }
 
-function idle() {
-    const {duration} = addRandomSplineSplash();
-    setTimeout(idle, (10 * 1000 + duration) * Math.random());
+function randomLine(length) {
+    const p0 = randomPoint();
+    const p1 = (randomPoint().subtract(p0)).normalize().multiplyScalar(length).add(p0);
+    return {p0, p1};
 }
 
-idle();
+function lerp(p0, p1, t) {
+    const oneMinusT = 1 - t;
+    return new Victor(
+        p0.x * oneMinusT + p1.x * t,
+        p0.y * oneMinusT + p1.y * t,
+    );
+}
+
+function startLineSplash(line, t) {
+    const {x, y} = lerp(line.p0, line.p1, t);
+    let posX = scaleByPixelRatio(x);
+    let posY = scaleByPixelRatio(y);
+    const pointer = new pointerPrototype();
+    pointer.attenuation = 4.0;
+    updatePointerDownData(pointer, -2, posX, posY);
+    splatPointerIfMoved(pointer);
+    return pointer;
+}
+
+function updateLineSplash(line, t, pointer) {
+    const {x, y} = lerp(line.p0, line.p1, t);
+    let posX = scaleByPixelRatio(x);
+    let posY = scaleByPixelRatio(y);
+    updatePointerMoveData(pointer, posX, posY);
+    splatPointerIfMoved(pointer);
+}
+
+function completeLineSplash(pointer) {
+    updatePointerUpData(pointer);
+}
+
+function addLineSplash(length, duration) {
+    const line = randomLine(length);
+
+    let pointer = new pointerPrototype();
+
+    const tween = new TWEEN.Tween({t: 0})
+        .to({t: 1}, duration)
+        .easing(TWEEN.Easing.Quadratic.In)
+        .onStart(({t}) => {
+            pointer = startLineSplash(line, t);
+        })
+        .onUpdate(({t}) => {
+            updateLineSplash(line, t, pointer)
+        })
+        .onComplete(() => completeLineSplash(pointer))
+        .onStop(() => {
+        });
+    tween.start();
+
+    return {line, tween};
+}
+
+function addRandomLineSplash(minDuration = 400, maxDuration = 1600) {
+    const minLength = new Victor(canvas.width, canvas.height).length() / 10.0;
+    const maxLength = 2.0 * minLength;
+    const length = minLength + (maxLength - minLength) * Math.random();
+
+    const duration = (minDuration + (maxDuration - minDuration) * Math.random());
+    const lineSplash = addLineSplash(length, duration);
+    return {lineSplash, duration};
+}
+
+function idleLineSplats() {
+    const {duration} = addRandomLineSplash();
+    setTimeout(idleLineSplats, 0.2 * 1000 + duration * Math.random());
+}
+
+idleLineSplats();
+
+function idleSplineSplats() {
+    const {duration} = addRandomSplineSplash();
+    setTimeout(idleSplineSplats, (10 * 1000 + duration) * Math.random());
+}
+
+idleSplineSplats();
 
 function animateIdle(timeMs) {
     TWEEN.update(timeMs);
