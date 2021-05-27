@@ -21,13 +21,7 @@
         <meta property="og:url" content="https://paveldogreat.github.io/WebGL-Fluid-Simulation/">
         <meta property="og:image" content="https://paveldogreat.github.io/WebGL-Fluid-Simulation/logo.png">
 
-        <script type="text/javascript" src="dat.gui.min.js"></script>
-        <script type="text/javascript" src="tween.umd.js"></script>
         <script type="text/javascript" src="victor.min.js"></script>
-        <script type="module">
-            import {Bezier} from './Bezier.js';
-            window.Bezier = Bezier;
-        </script>
         <style>
             * {
                 user-select: none;
@@ -104,7 +98,7 @@
     <body>
         <canvas></canvas>
         <div id="touch-icons"></div>
-        <script src="./script.js" defer></script>
+        <script type="module" src="./script.js" defer></script>
     </body>
 </html>
 

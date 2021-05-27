@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+import * as dat from './dat.gui.module.js';
+import TWEEN from './tween.esm.js';
+import {Bezier} from './Bezier.js';
+
 'use strict';
 
 // Simulation section
