@@ -1,16 +1,17 @@
-# WebGL Fluid Simulation
+# Navier stroke
 
-[Play here](https://paveldogreat.github.io/WebGL-Fluid-Simulation/)
+A [WebGL-based fluid simulation app](https://github.com/PavelDoGreat/WebGL-Fluid-Simulation)
+with adjusted default parameters and added idle animations targeting exhibitions.
 
 ![Screenshot](./screenshot.jpg "Fluid simulation screenshot")
 
 ## References
 
-http://developer.download.nvidia.com/books/HTML/gpugems/gpugems_ch38.html
+[GPU Gems, Chapter 38](http://developer.download.nvidia.com/books/HTML/gpugems/gpugems_ch38.html)
 
-https://github.com/mharrys/fluids-2d
+[mharris' fluids-2d](https://github.com/mharrys/fluids-2d)
 
-https://github.com/haxiomic/GPU-Fluid-Experiments
+[haxiomic's GPU Fluid Experiments](https://github.com/haxiomic/GPU-Fluid-Experiments)
 
 ## License
 
