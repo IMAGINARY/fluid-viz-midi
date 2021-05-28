@@ -24,7 +24,7 @@ SOFTWARE.
 
 import * as dat from './dat.gui.module.js';
 import TWEEN from './tween.esm.js';
-import {Bezier} from './Bezier.js';
+import {Bezier} from './bezier.js';
 import {Idler, PointerInterrupter, KeyboardInterrupter} from "./idler.modern.js";
 
 'use strict';
