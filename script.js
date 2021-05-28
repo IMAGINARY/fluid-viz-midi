@@ -25,6 +25,7 @@ SOFTWARE.
 import * as dat from './dat.gui.module.js';
 import TWEEN from './tween.esm.js';
 import {Bezier} from './Bezier.js';
+import {Idler, PointerInterrupter, KeyboardInterrupter} from "./idler.modern.js";
 
 'use strict';
 
@@ -1744,8 +1745,11 @@ function updateLineSplash(line, t, pointer, touchIcon) {
 }
 
 function completeOrStopLineSplash(pointer, touchIcon) {
-    touchIcon.classList.replace('fade-in-fast','fade-out-fast');
-    touchIcon.addEventListener('transitionend', () => touchIcon.remove());
+    touchIcon.classList.replace('fade-in-fast', 'fade-out-fast');
+    touchIcon.addEventListener('transitionend', (e) => {
+        e.stopPropagation();
+        touchIcon.remove();
+    }, {once: true});
     updatePointerUpData(pointer);
 }
 
@@ -1785,6 +1789,16 @@ function addRandomLineSplash(minDuration = 400, maxDuration = 1600) {
     return {lineSplash, duration};
 }
 
+const searchParams = new URLSearchParams(window.location.search);
+const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
+const urlIdleDuration = Number.parseFloat(searchParams.get('idleDuration'));
+const urlTouchIconDelay = Number.parseFloat(searchParams.get('touchIconDelay'));
+const urlTouchIconDuration = Number.parseFloat(searchParams.get('touchIconDuration'));
+const idleTimeout = (urlIdleTimeout >= 0.0 ? urlIdleTimeout : 20) * 1000;
+const idleDuration = (urlIdleDuration >= 0.0 ? urlIdleDuration : 3 * 60) * 1000;
+const touchIconDelay = (urlTouchIconDelay >= 0.0 ? urlTouchIconDelay : 60) * 1000;
+const touchIconDuration = (urlTouchIconDuration >= 0.0 ? urlTouchIconDuration : 10) * 1000;
+
 let idle = false;
 
 let idleLineSplatTimeoutId = 0;
@@ -1809,6 +1823,27 @@ function idleSplineSplats() {
     }
 }
 
+let touchIconOpacityTimeoutId = 0;
+
+function fadeInTouchIcons() {
+    const touchIcons = document.getElementById('touch-icons');
+    touchIcons.classList.remove('transparent');
+    touchIcons.classList.remove('fade-out-fast');
+    touchIcons.classList.remove('fade-out-slow');
+    touchIcons.classList.add('fade-in-slow');
+}
+
+function fadeOutTouchIcons(fast = false) {
+    const touchIcons = document.getElementById('touch-icons');
+    touchIcons.classList.remove('fade-in-slow');
+    touchIcons.classList.add(`fade-out-${fast ? 'fast' : 'slow'}`);
+}
+
+function cycleTouchIconOpacity() {
+    fadeInTouchIcons();
+    touchIconOpacityTimeoutId = setTimeout(fadeOutTouchIcons, touchIconDuration);
+}
+
 function startIdleAnimation() {
     idle = true;
     idleLineSplatTimeoutId = idleLineSplats();
@@ -1825,55 +1860,24 @@ function stopIdleAnimation() {
     clearTimeout(idleSplineSplatTimeoutId);
     splineSplashTweenGroup.getAll().forEach(tween => tween.stop());
     splineSplashTweenGroup.removeAll();
+
+    clearTimeout(touchIconOpacityTimeoutId);
+    fadeOutTouchIcons(true);
 }
 
 function animateIdle(timeMs) {
     lineSplashTweenGroup.update(timeMs);
     splineSplashTweenGroup.update(timeMs);
-    requestAnimationFrame(animateIdle);
 }
 
-requestAnimationFrame(animateIdle);
-
-const searchParams = new URLSearchParams(window.location.search);
-const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
-const idleTimeout = ( urlIdleTimeout >= 0.0 ? urlIdleTimeout : 20 ) * 1000;
-
-let idleTimeoutId = 0;
-
-function nonIdleHandler() {
-    stopIdleAnimation();
-    clearTimeout(idleTimeoutId);
-    idleTimeoutId = setTimeout(startIdleAnimation, idleTimeout);
-}
-
-const wakeupEvents = [
-    'pointerdown',
-    'pointermove',
-    'pointerup',
-    'pointercancel',
-    'keydown',
-    'keyup',
-];
-
-wakeupEvents.forEach(type => canvas.addEventListener(type, nonIdleHandler, true));
-nonIdleHandler();
-
-async function sleep(ms) {
-    await new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// TODO: stop cycling when idle mode is off
-async function cycleTouchIconOpacity() {
-    const touchIcons = document.getElementById('touch-icons');
-    while (true) {
-        await sleep(5 * 1000);
-        touchIcons.classList.remove('fade-out-slow');
-        touchIcons.classList.add('fade-in-slow');
-
-        await sleep(5 * 1000);
-        touchIcons.classList.remove('fade-in-slow');
-        touchIcons.classList.add('fade-out-slow');
-    }
-}
-cycleTouchIconOpacity();
+const idler = new Idler(new PointerInterrupter(), new KeyboardInterrupter());
+idler.addCallback({
+    onBegin: startIdleAnimation,
+    delay: idleTimeout,
+    duration: idleDuration,
+    onAnimate: animateIdle,
+    onInterval: cycleTouchIconOpacity,
+    interval: touchIconDelay,
+    onEnd: stopIdleAnimation,
+    immediate: true
+});

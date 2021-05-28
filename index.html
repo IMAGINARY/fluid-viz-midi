@@ -53,6 +53,8 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
+                touch-action: none;
+                pointer-events: none;
             }
 
             .touch-icon {
@@ -72,6 +74,10 @@
                 top: -16px;
                 left: -27px;
                 background-size: contain;
+            }
+
+            .transparent {
+                opacity: 0.0;
             }
 
             .fade-in-fast {
@@ -97,7 +103,7 @@
     </head>
     <body>
         <canvas></canvas>
-        <div id="touch-icons"></div>
+        <div id="touch-icons" class="transparent"></div>
         <script type="module" src="./script.js" defer></script>
     </body>
 </html>
