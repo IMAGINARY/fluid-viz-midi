@@ -1634,37 +1634,25 @@ function startSplineSplash(segments, globalT) {
     let posX = scaleByPixelRatio(x);
     let posY = scaleByPixelRatio(y);
 
-    const touchIcon = document.createElement('div');
-    touchIcon.classList.add('touch-icon');
-    touchIcon.classList.add('fade-in-fast');
-    touchIcon.style.left = `${posX}px`;
-    touchIcon.style.top = `${posY}px`;
-    document.getElementById('touch-icons').appendChild(touchIcon);
-
     const pointer = new pointerPrototype();
     pointer.attenuation = 4.0;
     updatePointerDownData(pointer, -2, posX, posY);
     splatPointerIfMoved(pointer);
 
-    return {pointer, touchIcon};
+    return {pointer};
 }
 
-function updateSplineSplash(segments, globalT, pointer, touchIcon) {
+function updateSplineSplash(segments, globalT, pointer) {
     const {segment, t} = tToSegmentT(segments, globalT);
     const {x, y} = segment.get(t);
     let posX = scaleByPixelRatio(x);
     let posY = scaleByPixelRatio(y);
 
-    touchIcon.style.left = `${posX}px`;
-    touchIcon.style.top = `${posY}px`;
-
     updatePointerMoveData(pointer, posX, posY);
     splatPointerIfMoved(pointer);
 }
 
-function completeOrStopSplineSplash(pointer, touchIcon) {
-    touchIcon.classList.replace('fade-in-fast','fade-out-fast');
-    touchIcon.addEventListener('transitionend', () => touchIcon.remove());
+function completeOrStopSplineSplash(pointer) {
     updatePointerUpData(pointer);
 }
 
@@ -1674,7 +1662,6 @@ function addSplineSplash(numSegments, duration) {
     const segments = randomSpline(numSegments);
 
     let pointer = new pointerPrototype();
-    let touchIcon = document.createElement('div');
 
     const tween = new TWEEN.Tween({t: 0}, splineSplashTweenGroup)
         .to({t: segments.length}, duration)
@@ -1682,13 +1669,12 @@ function addSplineSplash(numSegments, duration) {
         .onStart(({t}) => {
             const result = startSplineSplash(segments, t);
             pointer = result.pointer;
-            touchIcon = result.touchIcon;
         })
         .onUpdate(({t}) => {
-            updateSplineSplash(segments, t, pointer, touchIcon)
+            updateSplineSplash(segments, t, pointer)
         })
-        .onComplete(() => completeOrStopSplineSplash(pointer, touchIcon))
-        .onStop(() => completeOrStopSplineSplash(pointer, touchIcon));
+        .onComplete(() => completeOrStopSplineSplash(pointer))
+        .onStop(() => completeOrStopSplineSplash(pointer));
     tween.start();
 
     return {segments, tween};
@@ -1720,36 +1706,22 @@ function startLineSplash(line, t) {
     let posX = scaleByPixelRatio(x);
     let posY = scaleByPixelRatio(y);
 
-    const touchIcon = document.createElement('div');
-    touchIcon.classList.add('touch-icon');
-    touchIcon.classList.add('fade-in-fast');
-    touchIcon.style.left = `${posX}px`;
-    touchIcon.style.top = `${posY}px`;
-    document.getElementById('touch-icons').appendChild(touchIcon);
-
     const pointer = new pointerPrototype();
     pointer.attenuation = 4.0;
     updatePointerDownData(pointer, -2, posX, posY);
     splatPointerIfMoved(pointer);
-    return {touchIcon, pointer};
+    return {pointer};
 }
 
-function updateLineSplash(line, t, pointer, touchIcon) {
+function updateLineSplash(line, t, pointer) {
     const {x, y} = lerp(line.p0, line.p1, t);
     let posX = scaleByPixelRatio(x);
     let posY = scaleByPixelRatio(y);
-    touchIcon.style.left = `${posX}px`;
-    touchIcon.style.top = `${posY}px`;
     updatePointerMoveData(pointer, posX, posY);
     splatPointerIfMoved(pointer);
 }
 
-function completeOrStopLineSplash(pointer, touchIcon) {
-    touchIcon.classList.replace('fade-in-fast', 'fade-out-fast');
-    touchIcon.addEventListener('transitionend', (e) => {
-        e.stopPropagation();
-        touchIcon.remove();
-    }, {once: true});
+function completeOrStopLineSplash(pointer) {
     updatePointerUpData(pointer);
 }
 
@@ -1759,7 +1731,6 @@ function addLineSplash(length, duration) {
     const line = randomLine(length);
 
     let pointer = new pointerPrototype();
-    let touchIcon = document.createElement('div');
 
     const tween = new TWEEN.Tween({t: 0}, lineSplashTweenGroup)
         .to({t: 1}, duration)
@@ -1767,13 +1738,12 @@ function addLineSplash(length, duration) {
         .onStart(({t}) => {
             const result = startLineSplash(line, t);
             pointer = result.pointer;
-            touchIcon = result.touchIcon;
         })
         .onUpdate(({t}) => {
-            updateLineSplash(line, t, pointer, touchIcon)
+            updateLineSplash(line, t, pointer)
         })
-        .onComplete(() => completeOrStopLineSplash(pointer, touchIcon))
-        .onStop(() => completeOrStopLineSplash(pointer, touchIcon));
+        .onComplete(() => completeOrStopLineSplash(pointer))
+        .onStop(() => completeOrStopLineSplash(pointer));
     tween.start();
 
     return {line, tween};
@@ -1793,11 +1763,9 @@ const searchParams = new URLSearchParams(window.location.search);
 const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
 const urlIdleDuration = Number.parseFloat(searchParams.get('idleDuration'));
 const urlTouchIconDelay = Number.parseFloat(searchParams.get('touchIconDelay'));
-const urlTouchIconDuration = Number.parseFloat(searchParams.get('touchIconDuration'));
 const idleTimeout = (urlIdleTimeout >= 0.0 ? urlIdleTimeout : 20) * 1000;
 const idleDuration = (urlIdleDuration >= 0.0 ? urlIdleDuration : 3 * 60) * 1000;
-const touchIconDelay = (urlTouchIconDelay >= 0.0 ? urlTouchIconDelay : 60) * 1000;
-const touchIconDuration = (urlTouchIconDuration >= 0.0 ? urlTouchIconDuration : 10) * 1000;
+const touchIconDelay = (urlTouchIconDelay >= 0.0 ? urlTouchIconDelay : 30) * 1000;
 
 let idle = false;
 
@@ -1825,29 +1793,25 @@ function idleSplineSplats() {
 
 let touchIconOpacityTimeoutId = 0;
 
-function fadeInTouchIcons() {
-    const touchIcons = document.getElementById('touch-icons');
+function fadeInTouchIconContainer() {
+    const touchIcons = document.getElementById('touch-icon-container');
     touchIcons.classList.remove('transparent');
     touchIcons.classList.remove('fade-out-fast');
     touchIcons.classList.remove('fade-out-slow');
     touchIcons.classList.add('fade-in-slow');
 }
 
-function fadeOutTouchIcons(fast = false) {
-    const touchIcons = document.getElementById('touch-icons');
+function fadeOutTouchIconContainer(fast = false) {
+    const touchIcons = document.getElementById('touch-icon-container');
     touchIcons.classList.remove('fade-in-slow');
     touchIcons.classList.add(`fade-out-${fast ? 'fast' : 'slow'}`);
-}
-
-function cycleTouchIconOpacity() {
-    fadeInTouchIcons();
-    touchIconOpacityTimeoutId = setTimeout(fadeOutTouchIcons, touchIconDuration);
 }
 
 function startIdleAnimation() {
     idle = true;
     idleLineSplatTimeoutId = idleLineSplats();
     idleSplineSplatTimeoutId = idleSplineSplats();
+    fadeInTouchIconContainer();
 }
 
 function stopIdleAnimation() {
@@ -1862,12 +1826,18 @@ function stopIdleAnimation() {
     splineSplashTweenGroup.removeAll();
 
     clearTimeout(touchIconOpacityTimeoutId);
-    fadeOutTouchIcons(true);
+    fadeOutTouchIconContainer(true);
 }
 
 function animateIdle(timeMs) {
     lineSplashTweenGroup.update(timeMs);
     splineSplashTweenGroup.update(timeMs);
+}
+
+function animateTouchIcon() {
+    const touchIcon = document.querySelector('#touch-icon');
+    touchIcon.classList.add('animate-touch-icon');
+    touchIcon.parentNode.replaceChild(touchIcon.cloneNode(),touchIcon);
 }
 
 const idler = new Idler(new PointerInterrupter(), new KeyboardInterrupter());
@@ -1876,7 +1846,7 @@ idler.addCallback({
     delay: idleTimeout,
     duration: idleDuration,
     onAnimate: animateIdle,
-    onInterval: cycleTouchIconOpacity,
+    onInterval: animateTouchIcon,
     interval: touchIconDelay,
     onEnd: stopIdleAnimation,
     immediate: true

@@ -12,7 +12,6 @@ The app's idle mode can be configured via URL parameters:
 idleTimeout = 20 // start idle mode after 20s of inactivity
 idleDuration = 3 * 60 // stop idle mode after 3min (and then wait for idleTimeout again)
 touchIconDelay = 60 // show the touch icon overlay once every 1min
-touchIconDuration = 10 // hide the touch icon overlay after 10s
 ```
 
 ## References
