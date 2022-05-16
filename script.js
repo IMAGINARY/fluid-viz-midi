@@ -741,11 +741,13 @@ const divergenceShader = compileShader(gl.FRAGMENT_SHADER, `
         float T = texture2D(uVelocity, vT).y;
         float B = texture2D(uVelocity, vB).y;
 
+        vec2 center = vec2(0.5, 0.5);
+
         vec2 C = texture2D(uVelocity, vUv).xy;
-        if (vL.x < 0.0) { L = -C.x; }
-        if (vR.x > 1.0) { R = -C.x; }
-        if (vT.y > 1.0) { T = -C.y; }
-        if (vB.y < 0.0) { B = -C.y; }
+        if (length(vL - center) > 0.5) { L = -C.x; }
+        if (length(vR - center) > 0.5) { R = -C.x; }
+        if (length(vT - center) > 0.5) { T = -C.y; }
+        if (length(vB - center) > 0.5) { B = -C.y; }
 
         float div = 0.5 * (R - L + T - B);
         gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
@@ -1137,9 +1139,10 @@ function calcDeltaTime () {
 function resizeCanvas () {
     let width = scaleByPixelRatio(canvas.clientWidth);
     let height = scaleByPixelRatio(canvas.clientHeight);
-    if (canvas.width != width || canvas.height != height) {
-        canvas.width = width;
-        canvas.height = height;
+    const size = Math.min(width, height);
+    if (canvas.width != size || canvas.height != size) {
+        canvas.width = size;
+        canvas.height = size;
         return true;
     }
     return false;
@@ -1727,9 +1730,7 @@ function completeOrStopLineSplash(pointer) {
 
 const lineSplashTweenGroup = new TWEEN.Group();
 
-function addLineSplash(length, duration) {
-    const line = randomLine(length);
-
+function addLineSplash(line, duration) {
     let pointer = new pointerPrototype();
 
     const tween = new TWEEN.Tween({t: 0}, lineSplashTweenGroup)
@@ -1753,11 +1754,72 @@ function addRandomLineSplash(minDuration = 400, maxDuration = 1600) {
     const minLength = new Victor(canvas.width, canvas.height).length() / 10.0;
     const maxLength = 2.0 * minLength;
     const length = minLength + (maxLength - minLength) * Math.random();
+    const line = randomLine(length);
 
     const duration = (minDuration + (maxDuration - minDuration) * Math.random());
-    const lineSplash = addLineSplash(length, duration);
+    const lineSplash = addLineSplash(line, duration);
     return {lineSplash, duration};
 }
+
+function addNoteLineSplash(midiNote, midiVelocity) {
+    const radius = Math.min(canvas.width, canvas.height) / 2.0;
+
+    const secondsPerRotation = 10;
+    const angleOffset = performance.now() * 0.001 * 2 * Math.PI / secondsPerRotation;
+
+    const center = new Victor(canvas.width / 2, canvas.height / 2);
+    const dir = new Victor(1, 0).rotate(angleOffset + 2 * Math.PI * midiNote / 12 );
+    const start = center.clone().add(dir.clone().multiplyScalar(radius));
+    const end = center.clone().add(dir.clone().multiplyScalar(0.5*radius));
+
+    const line = {
+        p0: start,
+        p1: end,
+    }
+
+    const duration = 1000 * midiVelocity / 127;
+
+    const lineSplash = addLineSplash(line, duration);
+    return {lineSplash, duration};
+}
+
+const synth = new WebAudioTinySynth();
+synth.setMasterVol(0.05);
+synth.ready().then(() => setInterval(() => synth.getAudioContext().resume(), 100));
+
+function handleMidiMessage(event) {
+    console.log(event);
+    switch (event.name) {
+        case 'Note on':
+            synth.noteOn(event.channel, event.noteNumber, event.velocity);
+            addNoteLineSplash(event.noteNumber, event.velocity);
+            break;
+        case 'Note off':
+            synth.noteOff(event.channel, event.noteNumber);
+            break;
+    }
+}
+
+async function fetchArrayBuffer(url) {
+    const r = await fetch(url);
+    return await r.arrayBuffer();
+}
+
+
+async function playNotes() {
+    const midiUrl = "https://bitmidi.com/uploads/28362.mid";
+    const midiArrayBuffer = await fetchArrayBuffer(midiUrl);
+    const midiPlayer = new MidiPlayer.Player(handleMidiMessage);
+    midiPlayer.loadArrayBuffer(midiArrayBuffer);
+    midiPlayer.play();
+}
+
+playNotes();
+
+window.addRandomSplineSplash = addRandomSplineSplash;
+window.addNoteLineSplash = addNoteLineSplash;
+window.playNotes = playNotes;
+
 
 const searchParams = new URLSearchParams(window.location.search);
 const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
@@ -1809,9 +1871,9 @@ function fadeOutTouchIconContainer(fast = false) {
 
 function startIdleAnimation() {
     idle = true;
-    idleLineSplatTimeoutId = idleLineSplats();
-    idleSplineSplatTimeoutId = idleSplineSplats();
-    fadeInTouchIconContainer();
+//    idleLineSplatTimeoutId = idleLineSplats();
+//    idleSplineSplatTimeoutId = idleSplineSplats();
+//    fadeInTouchIconContainer();
 }
 
 function stopIdleAnimation() {
@@ -1846,7 +1908,7 @@ idler.addCallback({
     delay: idleTimeout,
     duration: idleDuration,
     onAnimate: animateIdle,
-    onInterval: animateTouchIcon,
+//    onInterval: animateTouchIcon,
     interval: touchIconDelay,
     onEnd: stopIdleAnimation,
     immediate: true
