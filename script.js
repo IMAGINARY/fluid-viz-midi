@@ -218,6 +218,8 @@ function startGUI () {
     } else {
         dat.GUI.toggleHide();
     }
+
+    window.addEventListener('keydown', ({code}) => code === 'KeyM' ? dat.GUI.toggleHide() : undefined);
 }
 
 function isMobile () {
