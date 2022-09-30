@@ -1783,43 +1783,8 @@ function addNoteLineSplash(midiNote, midiVelocity) {
     return {lineSplash, duration};
 }
 
-const synth = new WebAudioTinySynth();
-synth.setMasterVol(0.05);
-synth.ready().then(() => setInterval(() => synth.getAudioContext().resume(), 100));
-
-function handleMidiMessage(event) {
-    console.log(event);
-    switch (event.name) {
-        case 'Note on':
-            synth.noteOn(event.channel, event.noteNumber, event.velocity);
-            addNoteLineSplash(event.noteNumber, event.velocity);
-            break;
-        case 'Note off':
-            synth.noteOff(event.channel, event.noteNumber);
-            break;
-    }
-}
-
-async function fetchArrayBuffer(url) {
-    const r = await fetch(url);
-    return await r.arrayBuffer();
-}
-
-
-async function playNotes() {
-    const midiUrl = "https://bitmidi.com/uploads/28362.mid";
-    const midiArrayBuffer = await fetchArrayBuffer(midiUrl);
-    const midiPlayer = new MidiPlayer.Player(handleMidiMessage);
-    midiPlayer.loadArrayBuffer(midiArrayBuffer);
-    midiPlayer.play();
-}
-
-playNotes();
-
 window.addRandomSplineSplash = addRandomSplineSplash;
 window.addNoteLineSplash = addNoteLineSplash;
-window.playNotes = playNotes;
-
 
 const searchParams = new URLSearchParams(window.location.search);
 const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
@@ -1828,6 +1793,59 @@ const urlTouchIconDelay = Number.parseFloat(searchParams.get('touchIconDelay'));
 const idleTimeout = (urlIdleTimeout >= 0.0 ? urlIdleTimeout : 20) * 1000;
 const idleDuration = (urlIdleDuration >= 0.0 ? urlIdleDuration : 3 * 60) * 1000;
 const touchIconDelay = (urlTouchIconDelay >= 0.0 ? urlTouchIconDelay : 30) * 1000;
+
+const midiPortNames = searchParams.getAll('midiPort');
+
+async function connectMidi() {
+    const midiAccess = await navigator.requestMIDIAccess();
+    const midiPortFilterPredicate = ({name}) => midiPortNames.indexOf(name) !== -1;
+    const midiPorts = [...midiAccess.inputs.values()].filter(midiPortFilterPredicate);
+    await Promise.all(midiPorts.map(m => m.open()));
+    midiPorts.forEach(m => m.onmidimessage = handleMidiMessage);
+}
+
+connectMidi().then();
+
+function handleMidiMessage(event) {
+    const status = event.data[0];
+    const data0 = event.data[1];
+    const data1 = event.data[2];
+
+    const message = status & 0xF0;
+    let decodedMessage;
+    switch (message) {
+        case 0b10010000: {
+            const type = "Note On";
+            const channel = status & 0x0F;
+            const note = data0;
+            const velocity = data1;
+            decodedMessage = {type, channel, note, velocity};
+            addNoteLineSplash(note, velocity);
+            break;
+        }
+        case 0b10000000: {
+            const type = "Note Off";
+            const channel = status & 0x0F;
+            const note = data0;
+            const velocity = data1;
+            decodedMessage = {type, channel, note, velocity};
+            break;
+        }
+        case 0b10110000: {
+            const type = "Control Change";
+            const channel = status & 0x0F;
+            const controller = data0;
+            const value = data1;
+            decodedMessage = {type, channel, controller, value};
+            break;
+        }
+        default: {
+            decodedMessage = {status, data0, data1};
+            console.log("Unknown MIDI message type!", decodedMessage);
+            break;
+        }
+    }
+}
 
 let idle = false;
 
