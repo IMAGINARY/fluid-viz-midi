@@ -1590,110 +1590,11 @@ function hashCode (s) {
     return hash;
 }
 
-function randomPoint() {
-    return new Victor(
-        Math.random() * canvas.width,
-        Math.random() * canvas.height
-    );
-}
-
-function randomSpline(numSegments) {
-    let lastC = randomPoint();
-    let lastP = randomPoint();
-    const segments = [];
-    while (numSegments > 0) {
-        const p0 = lastP;
-        const c0 = lastP - (lastC - lastP);
-        const c1 = randomPoint();
-        const p1 = randomPoint();
-        const bezier = new Bezier(p0, c0, c1, p1);
-        lastC = c1;
-        lastP = p1;
-        segments.push(bezier);
-        --numSegments;
-    }
-    return segments;
-}
-
-function tToSegmentT(segments, t) {
-    const segmentId = t >= segments.length ? segments.length - 1 : Math.floor(t);
-    return {
-        id: segmentId,
-        segment: segments[segmentId],
-        t: t - segmentId,
-    }
-}
-
 function splatPointerIfMoved(pointer) {
     if (pointer.moved) {
         pointer.moved = false;
         splatPointer(pointer);
     }
-}
-
-function startSplineSplash(segments, globalT) {
-    const {segment, t} = tToSegmentT(segments, 0);
-    const {x, y} = segment.get(t);
-    let posX = scaleByPixelRatio(x);
-    let posY = scaleByPixelRatio(y);
-
-    const pointer = new pointerPrototype();
-    pointer.attenuation = 4.0;
-    updatePointerDownData(pointer, -2, posX, posY);
-    splatPointerIfMoved(pointer);
-
-    return {pointer};
-}
-
-function updateSplineSplash(segments, globalT, pointer) {
-    const {segment, t} = tToSegmentT(segments, globalT);
-    const {x, y} = segment.get(t);
-    let posX = scaleByPixelRatio(x);
-    let posY = scaleByPixelRatio(y);
-
-    updatePointerMoveData(pointer, posX, posY);
-    splatPointerIfMoved(pointer);
-}
-
-function completeOrStopSplineSplash(pointer) {
-    updatePointerUpData(pointer);
-}
-
-const splineSplashTweenGroup = new TWEEN.Group();
-
-function addSplineSplash(numSegments, duration) {
-    const segments = randomSpline(numSegments);
-
-    let pointer = new pointerPrototype();
-
-    const tween = new TWEEN.Tween({t: 0}, splineSplashTweenGroup)
-        .to({t: segments.length}, duration)
-        .easing(TWEEN.Easing.Quadratic.In)
-        .onStart(({t}) => {
-            const result = startSplineSplash(segments, t);
-            pointer = result.pointer;
-        })
-        .onUpdate(({t}) => {
-            updateSplineSplash(segments, t, pointer)
-        })
-        .onComplete(() => completeOrStopSplineSplash(pointer))
-        .onStop(() => completeOrStopSplineSplash(pointer));
-    tween.start();
-
-    return {segments, tween};
-}
-
-function addRandomSplineSplash(maxSegments = 3, minDuration = 1000, maxDuration = 3000) {
-    const numSegments = 1 + Math.floor((maxSegments) * Math.random());
-    const duration = numSegments * (minDuration + (maxDuration - minDuration) * Math.random());
-    const splineSplash = addSplineSplash(numSegments, duration);
-    return {splineSplash, duration};
-}
-
-function randomLine(length) {
-    const p0 = randomPoint();
-    const p1 = (randomPoint().subtract(p0)).normalize().multiplyScalar(length).add(p0);
-    return {p0, p1};
 }
 
 function lerp(p0, p1, t) {
@@ -1750,17 +1651,6 @@ function addLineSplash(line, duration) {
     return {line, tween};
 }
 
-function addRandomLineSplash(minDuration = 400, maxDuration = 1600) {
-    const minLength = new Victor(canvas.width, canvas.height).length() / 10.0;
-    const maxLength = 2.0 * minLength;
-    const length = minLength + (maxLength - minLength) * Math.random();
-    const line = randomLine(length);
-
-    const duration = (minDuration + (maxDuration - minDuration) * Math.random());
-    const lineSplash = addLineSplash(line, duration);
-    return {lineSplash, duration};
-}
-
 function addNoteLineSplash(midiNote, midiVelocity) {
     const radius = Math.min(canvas.width, canvas.height) / 2.0;
 
@@ -1783,17 +1673,7 @@ function addNoteLineSplash(midiNote, midiVelocity) {
     return {lineSplash, duration};
 }
 
-window.addRandomSplineSplash = addRandomSplineSplash;
-window.addNoteLineSplash = addNoteLineSplash;
-
 const searchParams = new URLSearchParams(window.location.search);
-const urlIdleTimeout = Number.parseFloat(searchParams.get('idleTimeout'));
-const urlIdleDuration = Number.parseFloat(searchParams.get('idleDuration'));
-const urlTouchIconDelay = Number.parseFloat(searchParams.get('touchIconDelay'));
-const idleTimeout = (urlIdleTimeout >= 0.0 ? urlIdleTimeout : 20) * 1000;
-const idleDuration = (urlIdleDuration >= 0.0 ? urlIdleDuration : 3 * 60) * 1000;
-const touchIconDelay = (urlTouchIconDelay >= 0.0 ? urlTouchIconDelay : 30) * 1000;
-
 const midiPortNames = searchParams.getAll('midiPort');
 
 async function connectMidi() {
@@ -1847,87 +1727,8 @@ function handleMidiMessage(event) {
     }
 }
 
-let idle = false;
-
-let idleLineSplatTimeoutId = 0;
-
-function idleLineSplats() {
-    const {duration} = addRandomLineSplash();
-    if (idle) {
-        return setTimeout(idleLineSplats, 0.2 * 1000 + duration * Math.random());
-    } else {
-        return 0;
-    }
-}
-
-let idleSplineSplatTimeoutId = 0;
-
-function idleSplineSplats() {
-    const {duration} = addRandomSplineSplash();
-    if (idle) {
-        return setTimeout(idleSplineSplats, (10 * 1000 + duration) * Math.random());
-    } else {
-        return 0;
-    }
-}
-
-let touchIconOpacityTimeoutId = 0;
-
-function fadeInTouchIconContainer() {
-    const touchIcons = document.getElementById('touch-icon-container');
-    touchIcons.classList.remove('transparent');
-    touchIcons.classList.remove('fade-out-fast');
-    touchIcons.classList.remove('fade-out-slow');
-    touchIcons.classList.add('fade-in-slow');
-}
-
-function fadeOutTouchIconContainer(fast = false) {
-    const touchIcons = document.getElementById('touch-icon-container');
-    touchIcons.classList.remove('fade-in-slow');
-    touchIcons.classList.add(`fade-out-${fast ? 'fast' : 'slow'}`);
-}
-
-function startIdleAnimation() {
-    idle = true;
-//    idleLineSplatTimeoutId = idleLineSplats();
-//    idleSplineSplatTimeoutId = idleSplineSplats();
-//    fadeInTouchIconContainer();
-}
-
-function stopIdleAnimation() {
-    idle = false;
-
-    clearTimeout(idleLineSplatTimeoutId);
-    lineSplashTweenGroup.getAll().forEach(tween => tween.stop());
-    lineSplashTweenGroup.removeAll();
-
-    clearTimeout(idleSplineSplatTimeoutId);
-    splineSplashTweenGroup.getAll().forEach(tween => tween.stop());
-    splineSplashTweenGroup.removeAll();
-
-    clearTimeout(touchIconOpacityTimeoutId);
-    fadeOutTouchIconContainer(true);
-}
-
-function animateIdle(timeMs) {
+function animateSplashes(timeMs) {
     lineSplashTweenGroup.update(timeMs);
-    splineSplashTweenGroup.update(timeMs);
+    requestAnimationFrame(animateSplashes);
 }
-
-function animateTouchIcon() {
-    const touchIcon = document.querySelector('#touch-icon');
-    touchIcon.classList.add('animate-touch-icon');
-    touchIcon.parentNode.replaceChild(touchIcon.cloneNode(),touchIcon);
-}
-
-const idler = new Idler(new PointerInterrupter(), new KeyboardInterrupter());
-idler.addCallback({
-    onBegin: startIdleAnimation,
-    delay: idleTimeout,
-    duration: idleDuration,
-    onAnimate: animateIdle,
-//    onInterval: animateTouchIcon,
-    interval: touchIconDelay,
-    onEnd: stopIdleAnimation,
-    immediate: true
-});
+animateSplashes();

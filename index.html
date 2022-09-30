@@ -46,95 +46,10 @@
                 width: 100vmin;
                 height: 100vmin;
             }
-
-            #touch-icon-container {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                touch-action: none;
-                pointer-events: none;
-            }
-
-            :root {
-                --touch-icon-size: 300px;
-            }
-
-            .touch-icon {
-                position: absolute;
-            }
-
-            .touch-icon:after {
-                content: '';
-                background: url("touch-icon.svg");
-                display: block;
-                width: var(--touch-icon-size);
-                height: var(--touch-icon-size);
-                position: relative;
-                top: calc(-0.25 * var(--touch-icon-size));
-                left: calc(-0.421875 * var(--touch-icon-size));
-                background-size: contain;
-            }
-
-            .transparent {
-                opacity: 0.0;
-            }
-
-            .fade-in-fast {
-                transition: opacity 0.5s;
-                opacity: 1.0;
-            }
-
-            .fade-in-slow {
-                transition: opacity 2s;
-                opacity: 1.0;
-            }
-
-            .fade-out-fast {
-                transition: opacity 0.5s;
-                opacity: 0.0;
-            }
-
-            .fade-out-slow {
-                transition: opacity 2s;
-                opacity: 0.0;
-            }
-
-            .animate-touch-icon {
-                opacity: 0;
-                position: absolute;
-                animation-name: slide-right;
-                animation-duration: 3.5s;
-                animation-iteration-count: 1;
-                animation-timing-function: linear;
-            }
-
-            @keyframes slide-right {
-                0% {
-                    opacity: 0;
-                    transform: translate(30vw, 40vh);
-                }
-                20% {
-                    opacity: 1;
-                    transform: translate(38vw, 40vh);
-                }
-                80% {
-                    opacity: 1;
-                    transform: translate(62vw, 40vh);
-                }
-                100% {
-                    opacity: 0;
-                    transform: translate(70vw, 40vh);
-                }
-            }
         </style>
     </head>
     <body>
         <canvas></canvas>
-        <div id="touch-icon-container" class="transparent">
-            <div id=touch-icon class="touch-icon transparent"></div>
-        </div>
         <script type="module" src="./script.js" defer></script>
     </body>
 </html>
