@@ -1686,15 +1686,16 @@ function addLineSplash(line, duration) {
 }
 
 function addNoteLineSplash(midiNote, midiVelocity) {
-    const radius = Math.min(canvas.width, canvas.height) / 2.0;
+    const radius = config.RADIUS * Math.min(canvas.width, canvas.height);
 
     const secondsPerRotation = 10;
     const angleOffset = performance.now() * 0.001 * 2 * Math.PI / secondsPerRotation;
 
     const center = new Victor(canvas.width / 2, canvas.height / 2);
     const dir = new Victor(1, 0).rotate(angleOffset + 2 * Math.PI * midiNote / 12 );
-    const start = center.clone().add(dir.clone().multiplyScalar(radius));
-    const end = center.clone().add(dir.clone().multiplyScalar(0.5*radius));
+    const s = 1.0 - config.SPLAT_RADIUS;
+    const start = center.clone().add(dir.clone().multiplyScalar(s * radius));
+    const end = center.clone().add(dir.clone().multiplyScalar(s * 0.5 * radius));
 
     const line = {
         p0: start,
