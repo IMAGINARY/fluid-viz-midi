@@ -36,6 +36,7 @@ resizeCanvas();
 
 let config = {
     RADIUS: 0.5,
+    FADE_WIDTH: 0.025,
     SIM_RESOLUTION: 256,
     DYE_RESOLUTION: 1024,
     CAPTURE_RESOLUTION: 512,
@@ -188,6 +189,7 @@ function startGUI () {
     gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(initFramebuffers);
     gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(initFramebuffers);
     gui.add(config, 'RADIUS', 0.0, Math.sqrt(2.0) / 2.0).name('radius');
+    gui.add(config, 'FADE_WIDTH', 0.0, Math.sqrt(2.0) / 2.0).name('fade width');
     gui.add(config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
     gui.add(config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
     gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
@@ -503,6 +505,8 @@ const displayShaderSource = `
     uniform sampler2D uBloom;
     uniform sampler2D uSunrays;
     uniform sampler2D uDithering;
+    uniform float radius;
+    uniform float fadeWidth;
     uniform vec2 ditherScale;
     uniform vec2 texelSize;
 
@@ -549,6 +553,12 @@ const displayShaderSource = `
         bloom = linearToGamma(bloom);
         c += bloom;
     #endif
+               
+        vec2 center = vec2(0.5, 0.5);
+        float dist = length(center - vUv);
+        vec3 black = vec3(0.0, 0.0, 0.0);
+        float t = clamp((dist - (radius - fadeWidth)) / fadeWidth, 0.0, 1.0);
+        c = mix(c, black, t);
 
         float a = max(c.r, max(c.g, c.b));
         gl_FragColor = vec4(c, a);
@@ -1299,6 +1309,8 @@ function drawDisplay (target) {
     let height = target == null ? gl.drawingBufferHeight : target.height;
 
     displayMaterial.bind();
+    gl.uniform1f(displayMaterial.uniforms.radius, config.RADIUS);
+    gl.uniform1f(displayMaterial.uniforms.fadeWidth, config.FADE_WIDTH);
     if (config.SHADING)
         gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
     gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
