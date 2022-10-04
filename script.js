@@ -35,6 +35,7 @@ const canvas = document.getElementsByTagName('canvas')[0];
 resizeCanvas();
 
 let config = {
+    RADIUS: 0.5,
     SIM_RESOLUTION: 256,
     DYE_RESOLUTION: 1024,
     CAPTURE_RESOLUTION: 512,
@@ -186,6 +187,7 @@ function startGUI () {
     var gui = new dat.GUI({ width: 300, hideable: true });
     gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(initFramebuffers);
     gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(initFramebuffers);
+    gui.add(config, 'RADIUS', 0.0, Math.sqrt(2.0) / 2.0).name('radius');
     gui.add(config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
     gui.add(config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
     gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
@@ -743,14 +745,13 @@ const divergenceShader = compileShader(gl.FRAGMENT_SHADER, `
         float T = texture2D(uVelocity, vT).y;
         float B = texture2D(uVelocity, vB).y;
 
-        vec2 center = vec2(0.5, 0.5);
-
         vec2 C = texture2D(uVelocity, vUv).xy;
-        if (length(vL - center) > 0.5) { L = -C.x; }
-        if (length(vR - center) > 0.5) { R = -C.x; }
-        if (length(vT - center) > 0.5) { T = -C.y; }
-        if (length(vB - center) > 0.5) { B = -C.y; }
 
+        if (vL.x < 0.0) { L = -C.x; }
+        if (vR.x > 1.0) { R = -C.x; }
+        if (vT.y > 1.0) { T = -C.y; }
+        if (vB.y < 0.0) { B = -C.y; }
+        
         float div = 0.5 * (R - L + T - B);
         gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
     }
@@ -843,8 +844,21 @@ const gradientSubtractShader = compileShader(gl.FRAGMENT_SHADER, `
     varying highp vec2 vR;
     varying highp vec2 vT;
     varying highp vec2 vB;
+    uniform float radius;
     uniform sampler2D uPressure;
     uniform sampler2D uVelocity;
+
+    float myPow(float x) {
+        float e = 20.0;
+        return pow(2.0, e * x - e);
+    }
+    
+    float easeIn(float x) {
+        float atZero = myPow(0.0);
+        float atOne = myPow(1.0);
+        float r = (myPow(x) - atZero) / (atOne - atZero);
+        return clamp(r , 0.0, 1.0);
+    }
 
     void main () {
         float L = texture2D(uPressure, vL).x;
@@ -853,6 +867,11 @@ const gradientSubtractShader = compileShader(gl.FRAGMENT_SHADER, `
         float B = texture2D(uPressure, vB).x;
         vec2 velocity = texture2D(uVelocity, vUv).xy;
         velocity.xy -= vec2(R - L, T - B);
+        
+        vec2 center = vec2(0.5, 0.5);
+        float dist = length(vUv - center);
+        velocity = mix(velocity, center - vUv, easeIn(dist / radius));
+        
         gl_FragColor = vec4(velocity, 0.0, 1.0);
     }
 `);
@@ -1213,6 +1232,7 @@ function step (dt) {
 
     gradienSubtractProgram.bind();
     gl.uniform2f(gradienSubtractProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+    gl.uniform1f(gradienSubtractProgram.uniforms.radius, config.RADIUS);
     gl.uniform1i(gradienSubtractProgram.uniforms.uPressure, pressure.read.attach(0));
     gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity, velocity.read.attach(1));
     blit(velocity.write);
