@@ -1814,10 +1814,23 @@ class Note {
         this.envelope = envelope;
         this.startTime = performance.now() / 1000.0;
         this.releaseTime = Infinity;
+        this.isSustained = false;
+        this.shouldRelease = false;
     }
 
     elapsedTime() {
         return performance.now() / 1000.0 - this.startTime;
+    }
+
+    hold(shouldHold) {
+        if (!shouldHold && this.isSustained && this.shouldRelease && !this.isOff()) {
+            this.forceOff();
+        }
+        this.isSustained = shouldHold;
+    }
+
+    isHeld() {
+        return this.isSustained;
     }
 
     isOff() {
@@ -1825,9 +1838,14 @@ class Note {
     }
 
     off() {
-        if (!this.isOff()) {
-            this.releaseTime = this.elapsedTime();
+        this.shouldRelease = true;
+        if (!this.isHeld() && !this.isOff()) {
+            this.forceOff();
         }
+    }
+
+    forceOff() {
+        this.releaseTime = this.elapsedTime();
     }
 
     getVolume() {
@@ -1901,18 +1919,27 @@ class NoteEnvelopeSplash {
 }
 
 const channelNoteSplashLists = new Array(16).fill(null).map(() => []);
+const channelHold = new Array(16).fill(false);
 
-function releaseADSRNoteSplash(midiChannel, midiNote) {
+function setHold(midiChannel, midiControllerValue) {
+    const hold = midiControllerValue >= 64;
+    channelHold[midiChannel] = hold;
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.hold(hold));
+}
+
+function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
     const noteSplashList = channelNoteSplashLists[midiChannel];
-    noteSplashList.map(({note}) => note).filter((note) => note.midiNote === midiNote).forEach(note => note.off());
+    const turnOff = force ? (note) => note.forceOff() : (note) => note.off();
+    noteSplashList.map(({note}) => note).filter((note) => note.midiNote === midiNote).forEach(turnOff);
 }
 
 function addADSRNoteSplash(midiChannel, midiNote, midiVelocity) {
-    releaseADSRNoteSplash(midiChannel, midiNote);
+    releaseADSRNoteSplash(midiChannel, midiNote, true);
 
     const noteSplashList = channelNoteSplashLists[midiChannel];
     const adsr = channelEnvelopes[midiChannel];
     const noteSplash = new NoteEnvelopeSplash(midiNote, midiVelocity, adsr);
+    noteSplash.note.hold(channelHold[midiChannel]);
 
     noteSplashList.push(noteSplash);
 }
@@ -1966,6 +1993,16 @@ async function connectMidi() {
 
 connectMidi().then();
 
+function handleMidiControlChangeMessage(midiChannel, midiController, midiControllerValue) {
+    switch (midiController) {
+        case 64: // Hold pedal
+            setHold(midiChannel, midiControllerValue);
+            return;
+        default:
+            break;
+    }
+}
+
 function handleMidiMessage(event) {
     const status = event.data[0];
     const data0 = event.data[1];
@@ -1998,6 +2035,7 @@ function handleMidiMessage(event) {
             const controller = data0;
             const value = data1;
             decodedMessage = {type, channel, controller, value};
+            handleMidiControlChangeMessage(channel, controller, value);
             break;
         }
         default: {
