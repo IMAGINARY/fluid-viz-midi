@@ -1416,13 +1416,13 @@ function multipleSplats (amount) {
     }
 }
 
-function splat (x, y, dx, dy, color, attenuation = 1.0) {
+function splat (x, y, dx, dy, color, attenuation = 1.0, radius = config.SPLAT_RADIUS) {
     splatProgram.bind();
     gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
     gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
     gl.uniform2f(splatProgram.uniforms.point, x, y);
     gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
-    gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
+    gl.uniform1f(splatProgram.uniforms.radius, correctRadius(radius / 100.0));
     gl.uniform1f(splatProgram.uniforms.attenuation, attenuation);
     blit(velocity.write);
     velocity.swap();
@@ -1685,6 +1685,251 @@ function addLineSplash(line, duration) {
     return {line, tween};
 }
 
+class ADSREnvelope {
+    static CURVE = {
+        LINEAR: "linear",
+        EXPONENTIAL: "expoential",
+    }
+
+    static curveLinear(value, inMin, inMax, outMin, outMax) {
+        return (value - inMin) / (inMax - inMin) * (outMax - outMin) + outMin
+    }
+
+    static curveExponential(value, inMin, inMax, outMin, outMax) {
+        return Math.pow(outMax / outMin, (value - inMin) / (inMax - inMin)) * outMin;
+    }
+
+    static DEFAULTS = {
+        attackDuration: 0.1,
+        attackCurve: ADSREnvelope.CURVE.LINEAR,
+        peakLevel: 1.0,
+        decayDuration: 1.0,
+        decayCurve: ADSREnvelope.CURVE.LINEAR,
+        sustainDuration: Infinity,
+        sustainLevel: 0.5,
+        releaseDuration: 0.1,
+        releaseCurve: ADSREnvelope.CURVE.LINEAR,
+    }
+
+    static getCurveByName(name) {
+        switch (name) {
+            case ADSREnvelope.CURVE.LINEAR:
+                return ADSREnvelope.curveLinear;
+            case ADSREnvelope.CURVE.EXPONENTIAL:
+                return ADSREnvelope.curveExponential;
+            default:
+                throw new Error(`Unknown curve "${name}"`);
+        }
+    }
+
+    constructor(options) {
+        this.options = {...ADSREnvelope.DEFAULTS, ...options};
+        const {
+            attackDuration,
+            attackCurve,
+            peakLevel,
+            decayDuration,
+            decayCurve,
+            sustainDuration,
+            sustainLevel,
+            releaseDuration,
+            releaseCurve,
+        } = this.options;
+        this.attack = {
+            duration: attackDuration,
+            targetLevel: peakLevel,
+            curve: ADSREnvelope.getCurveByName(attackCurve)
+        };
+        this.decay = {
+            duration: decayDuration,
+            targetLevel: sustainLevel,
+            curve: ADSREnvelope.getCurveByName(decayCurve)
+        };
+        this.release = {duration: releaseDuration, targetLevel: 0, curve: ADSREnvelope.getCurveByName(releaseCurve)};
+        this.gateDuration = attackDuration + decayDuration + sustainDuration;
+    }
+
+    _valueAtADS(elapsedTime) {
+        if (elapsedTime <= 0.0) {
+            // Note did not yet start
+            return 0.0;
+        }
+
+        // Determine the volume level at releaseTime
+        let timeInSection = elapsedTime;
+        let sourceLevel = 0.0;
+        for (let {duration, targetLevel, curve} of [this.attack, this.decay]) {
+            if (timeInSection <= duration) {
+                // The current section is the one we have to apply the curve to
+                return curve(timeInSection, 0, duration, sourceLevel, targetLevel);
+            }
+            timeInSection -= duration;
+            sourceLevel = targetLevel;
+        }
+        return this.options.sustainLevel;
+    }
+
+    _valueAtR(elapsedTimeSinceRelease, levelAtReleaseTime) {
+        const {duration, targetLevel, curve} = this.release;
+        if (elapsedTimeSinceRelease < duration) {
+            return curve(elapsedTimeSinceRelease, 0, duration, levelAtReleaseTime, targetLevel);
+        }
+        return targetLevel;
+    }
+
+    _minReleaseTime(releaseTime = Infinity) {
+        return Math.min(releaseTime, this.gateDuration);
+    }
+
+    valueAt(elapsedTime, releaseTime = Infinity) {
+        if (elapsedTime <= 0.0) {
+            // Note did not yet start
+            return 0.0;
+        }
+
+        releaseTime = this._minReleaseTime(releaseTime);
+
+        if (elapsedTime < releaseTime) {
+            // Note has not yet been released
+            return this._valueAtADS(elapsedTime);
+        }
+
+        const timeInReleaseSection = elapsedTime - releaseTime;
+        const levelAtReleaseTime = this._valueAtADS(releaseTime);
+        return this._valueAtR(timeInReleaseSection, levelAtReleaseTime);
+    }
+
+    isOver(elapsedTime, releaseTime = Infinity) {
+        releaseTime = this._minReleaseTime(releaseTime);
+        const timeInReleaseSection = elapsedTime - releaseTime;
+        const {duration} = this.release;
+        return timeInReleaseSection > duration;
+    }
+}
+
+class Note {
+    constructor(midiNote, midiVelocity, envelope) {
+        this.midiNote = midiNote;
+        this.midiVelocity = midiVelocity;
+        this.envelope = envelope;
+        this.startTime = performance.now() / 1000.0;
+        this.releaseTime = Infinity;
+    }
+
+    elapsedTime() {
+        return performance.now() / 1000.0 - this.startTime;
+    }
+
+    isOff() {
+        return this.releaseTime !== Infinity;
+    }
+
+    off() {
+        if (!this.isOff()) {
+            this.releaseTime = this.elapsedTime();
+        }
+    }
+
+    getVolume() {
+        return (this.midiVelocity / 127.0) * this.envelope.valueAt(this.elapsedTime());
+    }
+
+    isOver() {
+        return this.envelope.isOver(this.elapsedTime(), this.releaseTime);
+    }
+}
+
+const adsr = new ADSREnvelope({
+    "attackTime": 0.01,
+    "decayTime": 2,
+    "sustainDuration": 0,
+    "sustainLevel": 0.4,
+    "releaseTime": 0.7,
+    "attackCurve": ADSREnvelope.CURVE.LINEAR,
+    "decayCurve": ADSREnvelope.CURVE.EXPONENTIAL,
+    "releaseCurve": ADSREnvelope.CURVE.EXPONENTIAL,
+});
+
+const channelEnvelopes = Array(16).fill(adsr);
+
+class NoteEnvelopeSplash {
+    static secondsPerRotation = 10;
+
+    constructor(midiNote, midiVelocity, envelope) {
+        this.note = new Note(midiNote, midiVelocity, envelope);
+        this.angleOffset = performance.now() * 0.001 * 2 * Math.PI / NoteEnvelopeSplash.secondsPerRotation;
+
+        this.color = generateColor();
+        this.color.r *= 10;
+        this.color.g *= 10;
+        this.color.b *= 10;
+
+        this.lastCoords = this.getPointerCoordinates();
+        this.update();
+    }
+
+    getInterpolationParameter() {
+        const t = this.note.elapsedTime();
+        const speed = this.note.midiVelocity / 127.0;
+        return 1.0 / Math.pow(-1.0 - speed * t, 2.0) + 1.0;
+    }
+
+    getPointerCoordinates() {
+        const radius = config.RADIUS;
+        const splatRadius = Math.max(0.1, config.SPLAT_RADIUS) * 0.5;
+        const center = new Victor(0.5, 0.5);
+
+        const dir = new Victor(1, 0).rotate(this.angleOffset + 2 * Math.PI * this.note.midiNote / 12);
+        const start = center.clone().add(dir.clone().multiplyScalar(radius - splatRadius));
+        const end = center;
+
+        const t = this.getInterpolationParameter();
+        const p = start.clone().mix(end, t);
+        return p;
+    }
+
+    update() {
+        const volume = this.note.getVolume();
+        const factor = 100000.0 * volume;
+        const p = this.getPointerCoordinates();
+        const d = p.clone().subtract(this.lastCoords).multiply(new Victor(factor, factor));
+        const attenuation = 40.0;
+        const radius = config.SPLAT_RADIUS * (1.0 - Math.pow(1.0 - volume, 8.0));
+        splat(p.x, p.y, d.x, d.y, this.color, attenuation, radius);
+        this.lastCoords = p;
+    }
+}
+
+const channelNoteSplashLists = new Array(16).fill(null).map(() => []);
+
+function releaseADSRNoteSplash(midiChannel, midiNote) {
+    const noteSplashList = channelNoteSplashLists[midiChannel];
+    noteSplashList.map(({note}) => note).filter((note) => note.midiNote === midiNote).forEach(note => note.off());
+}
+
+function addADSRNoteSplash(midiChannel, midiNote, midiVelocity) {
+    releaseADSRNoteSplash(midiChannel, midiNote);
+
+    const noteSplashList = channelNoteSplashLists[midiChannel];
+    const adsr = channelEnvelopes[midiChannel];
+    const noteSplash = new NoteEnvelopeSplash(midiNote, midiVelocity, adsr);
+
+    noteSplashList.push(noteSplash);
+}
+
+function updateADSRNoteSplashes() {
+    channelNoteSplashLists.forEach((noteSplashList, channel) => {
+        let i = noteSplashList.length;
+        while (i--) {
+            const noteSplash = noteSplashList[i];
+            noteSplash.update();
+            if (noteSplash.note.isOver()) {
+                noteSplashList.splice(i, 1);
+            }
+        }
+    });
+}
+
 function addNoteLineSplash(midiNote, midiVelocity) {
     const radius = config.RADIUS * Math.min(canvas.width, canvas.height);
 
@@ -1692,7 +1937,7 @@ function addNoteLineSplash(midiNote, midiVelocity) {
     const angleOffset = performance.now() * 0.001 * 2 * Math.PI / secondsPerRotation;
 
     const center = new Victor(canvas.width / 2, canvas.height / 2);
-    const dir = new Victor(1, 0).rotate(angleOffset + 2 * Math.PI * midiNote / 12 );
+    const dir = new Victor(1, 0).rotate(angleOffset + 2 * Math.PI * midiNote / 12);
     const s = 1.0 - config.SPLAT_RADIUS;
     const start = center.clone().add(dir.clone().multiplyScalar(s * radius));
     const end = center.clone().add(dir.clone().multiplyScalar(s * 0.5 * radius));
@@ -1735,7 +1980,7 @@ function handleMidiMessage(event) {
             const note = data0;
             const velocity = data1;
             decodedMessage = {type, channel, note, velocity};
-            addNoteLineSplash(note, velocity);
+            addADSRNoteSplash(channel, note, velocity);
             break;
         }
         case 0b10000000: {
@@ -1744,6 +1989,7 @@ function handleMidiMessage(event) {
             const note = data0;
             const velocity = data1;
             decodedMessage = {type, channel, note, velocity};
+            releaseADSRNoteSplash(channel, note);
             break;
         }
         case 0b10110000: {
@@ -1765,5 +2011,6 @@ function handleMidiMessage(event) {
 function animateSplashes(timeMs) {
     lineSplashTweenGroup.update(timeMs);
     requestAnimationFrame(animateSplashes);
+    updateADSRNoteSplashes();
 }
 animateSplashes();
