@@ -1971,12 +1971,12 @@ function handleMidiMessage(event) {
     const data0 = event.data[1];
     const data1 = event.data[2];
 
-    const message = status & 0xF0;
+    const message = status & 0b11110000;
     let decodedMessage;
     switch (message) {
         case 0b10010000: {
             const type = "Note On";
-            const channel = status & 0x0F;
+            const channel = status & 0b00001111;
             const note = data0;
             const velocity = data1;
             decodedMessage = {type, channel, note, velocity};
@@ -1985,7 +1985,7 @@ function handleMidiMessage(event) {
         }
         case 0b10000000: {
             const type = "Note Off";
-            const channel = status & 0x0F;
+            const channel = status & 0b00001111;
             const note = data0;
             const velocity = data1;
             decodedMessage = {type, channel, note, velocity};
@@ -1994,7 +1994,7 @@ function handleMidiMessage(event) {
         }
         case 0b10110000: {
             const type = "Control Change";
-            const channel = status & 0x0F;
+            const channel = status & 0b00001111;
             const controller = data0;
             const value = data1;
             decodedMessage = {type, channel, controller, value};
