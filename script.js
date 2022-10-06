@@ -23,9 +23,6 @@ SOFTWARE.
 */
 
 import * as dat from './dat.gui.module.js';
-import TWEEN from './tween.esm.js';
-import {Bezier} from './bezier.js';
-import {Idler, PointerInterrupter, KeyboardInterrupter} from "./idler.modern.js";
 
 'use strict';
 
@@ -1634,67 +1631,6 @@ function hashCode (s) {
     return hash;
 }
 
-function splatPointerIfMoved(pointer) {
-    if (pointer.moved) {
-        pointer.moved = false;
-        splatPointer(pointer);
-    }
-}
-
-function lerp(p0, p1, t) {
-    const oneMinusT = 1 - t;
-    return new Victor(
-        p0.x * oneMinusT + p1.x * t,
-        p0.y * oneMinusT + p1.y * t,
-    );
-}
-
-function startLineSplash(line, t) {
-    const {x, y} = lerp(line.p0, line.p1, t);
-    let posX = scaleByPixelRatio(x);
-    let posY = scaleByPixelRatio(y);
-
-    const pointer = new pointerPrototype();
-    pointer.attenuation = 4.0;
-    updatePointerDownData(pointer, -2, posX, posY);
-    splatPointerIfMoved(pointer);
-    return {pointer};
-}
-
-function updateLineSplash(line, t, pointer) {
-    const {x, y} = lerp(line.p0, line.p1, t);
-    let posX = scaleByPixelRatio(x);
-    let posY = scaleByPixelRatio(y);
-    updatePointerMoveData(pointer, posX, posY);
-    splatPointerIfMoved(pointer);
-}
-
-function completeOrStopLineSplash(pointer) {
-    updatePointerUpData(pointer);
-}
-
-const lineSplashTweenGroup = new TWEEN.Group();
-
-function addLineSplash(line, duration) {
-    let pointer = new pointerPrototype();
-
-    const tween = new TWEEN.Tween({t: 0}, lineSplashTweenGroup)
-        .to({t: 1}, duration)
-        .easing(TWEEN.Easing.Quadratic.In)
-        .onStart(({t}) => {
-            const result = startLineSplash(line, t);
-            pointer = result.pointer;
-        })
-        .onUpdate(({t}) => {
-            updateLineSplash(line, t, pointer)
-        })
-        .onComplete(() => completeOrStopLineSplash(pointer))
-        .onStop(() => completeOrStopLineSplash(pointer));
-    tween.start();
-
-    return {line, tween};
-}
-
 class ADSREnvelope {
     static CURVE = {
         LINEAR: "linear",
@@ -1998,29 +1934,6 @@ function updateADSRNoteSplashes() {
     });
 }
 
-function addNoteLineSplash(midiNote, midiVelocity) {
-    const radius = config.RADIUS * Math.min(canvas.width, canvas.height);
-
-    const secondsPerRotation = 10;
-    const angleOffset = performance.now() * 0.001 * 2 * Math.PI / secondsPerRotation;
-
-    const center = new Victor(canvas.width / 2, canvas.height / 2);
-    const dir = new Victor(1, 0).rotate(angleOffset + 2 * Math.PI * midiNote / 12);
-    const s = 1.0 - config.SPLAT_RADIUS;
-    const start = center.clone().add(dir.clone().multiplyScalar(s * radius));
-    const end = center.clone().add(dir.clone().multiplyScalar(s * 0.5 * radius));
-
-    const line = {
-        p0: start,
-        p1: end,
-    }
-
-    const duration = 1000 * midiVelocity / 127;
-
-    const lineSplash = addLineSplash(line, duration);
-    return {lineSplash, duration};
-}
-
 function parseMidiChannelMask(mask) {
     if (!/^[01]{16}$/.test(mask)) {
         console.error(`MIDI channel mask "${mask}" has invalid format. It must be 16 characters being either '0' or '1'. Channel 1 corresponds to the rightmost bit.`);
@@ -2118,7 +2031,6 @@ function handleMidiMessage(event) {
 }
 
 function animateSplashes(timeMs) {
-    lineSplashTweenGroup.update(timeMs);
     requestAnimationFrame(animateSplashes);
     updateADSRNoteSplashes();
 }
