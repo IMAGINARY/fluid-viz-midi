@@ -2011,8 +2011,21 @@ function addNoteLineSplash(midiNote, midiVelocity) {
     return {lineSplash, duration};
 }
 
+function parseMidiChannelMask(mask) {
+    if (!/^[01]{16}$/.test(mask)) {
+        console.error(`MIDI channel mask "${mask}" has invalid format. It must be 16 characters being either '0' or '1'. Channel 1 corresponds to the rightmost bit.`);
+    }
+    return Number.parseInt(mask, 2);
+}
+
 const searchParams = new URLSearchParams(window.location.search);
 const midiPortNames = searchParams.getAll('midiPort');
+const midiChannelMask = parseMidiChannelMask(searchParams.get('midiChannelMask') ?? "1111111111111111");
+
+function useChannel(midiChannel) {
+    const midiChannelBit = 0b1 << midiChannel;
+    return midiChannelMask & midiChannelBit !== 0b0;
+}
 
 async function connectMidi() {
     const midiAccess = await navigator.requestMIDIAccess();
@@ -2056,6 +2069,9 @@ const channelMessageFuncMap = {
 }
 
 function handleMidiChannelMessage(subtype, channel, ...data) {
+    if(!useChannel(channel))
+        return;
+
     const func = channelMessageFuncMap[subtype] ?? (() => undefined);
     func(channel, ...data);
 }
@@ -2101,5 +2117,4 @@ animateSplashes();
 /**
  * TODO:
  * - Density diffusion: make dependent on distance from center
- * - MIDI channel filter, e.g. ?channels=1,3,5-15
  */
