@@ -1927,6 +1927,10 @@ function setHold(midiChannel, midiControllerValue) {
     channelNoteSplashLists[midiChannel].forEach(ns => ns.note.hold(hold));
 }
 
+function allSoundsOff(midiChannel) {
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.forceOff());
+}
+
 function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
     const noteSplashList = channelNoteSplashLists[midiChannel];
     const turnOff = force ? (note) => note.forceOff() : (note) => note.off();
@@ -1993,14 +1997,14 @@ async function connectMidi() {
 
 connectMidi().then();
 
+const controllerFuncMap = {
+    64: setHold,
+    120: allSoundsOff,
+};
+
 function handleMidiControlChangeMessage(midiChannel, midiController, midiControllerValue) {
-    switch (midiController) {
-        case 64: // Hold pedal
-            setHold(midiChannel, midiControllerValue);
-            return;
-        default:
-            break;
-    }
+    const controllerFunc = controllerFuncMap[midiController] ?? (() => undefined);
+    controllerFunc(midiChannel, midiControllerValue);
 }
 
 function handleMidiMessage(event) {
@@ -2060,6 +2064,5 @@ animateSplashes();
  * - MIDI messages:
  *  - All Controllers Off (127)
  *  - All Notes Off (123)
- *  - All Sounds Off (120)
  *  - ? Sustenuto (66)
  */
