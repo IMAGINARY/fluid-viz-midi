@@ -1931,6 +1931,10 @@ function allSoundsOff(midiChannel) {
     channelNoteSplashLists[midiChannel].forEach(ns => ns.note.forceOff());
 }
 
+function allNotesOff(midiChannel) {
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.off());
+}
+
 function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
     const noteSplashList = channelNoteSplashLists[midiChannel];
     const turnOff = force ? (note) => note.forceOff() : (note) => note.off();
@@ -2000,6 +2004,7 @@ connectMidi().then();
 const controllerFuncMap = {
     64: setHold,
     120: allSoundsOff,
+    123: allNotesOff,
 };
 
 function handleMidiControlChangeMessage(midiChannel, midiController, midiControllerValue) {
@@ -2063,6 +2068,5 @@ animateSplashes();
  * - MIDI channel filter, e.g. ?channels=1,3,5-15
  * - MIDI messages:
  *  - All Controllers Off (127)
- *  - All Notes Off (123)
  *  - ? Sustenuto (66)
  */
