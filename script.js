@@ -1814,7 +1814,8 @@ class Note {
         this.envelope = envelope;
         this.startTime = performance.now() / 1000.0;
         this.releaseTime = Infinity;
-        this.isSustained = false;
+        this.holdState = false;
+        this.sustainState = false;
         this.shouldRelease = false;
     }
 
@@ -1822,15 +1823,26 @@ class Note {
         return performance.now() / 1000.0 - this.startTime;
     }
 
-    hold(shouldHold) {
-        if (!shouldHold && this.isSustained && this.shouldRelease && !this.isOff()) {
+    sustain(enable) {
+        if (!enable && this.sustainState && this.shouldRelease && !this.isHeld() && !this.isOff()) {
             this.forceOff();
         }
-        this.isSustained = shouldHold;
+        this.holdState = enable;
+    }
+
+    isSustained() {
+        return this.sustainState;
+    }
+
+    hold(enable) {
+        if (!enable && this.holdState && this.shouldRelease && !this.isSustained() && !this.isOff()) {
+            this.forceOff();
+        }
+        this.holdState = enable;
     }
 
     isHeld() {
-        return this.isSustained;
+        return this.holdState;
     }
 
     isOff() {
@@ -1839,7 +1851,7 @@ class Note {
 
     off() {
         this.shouldRelease = true;
-        if (!this.isHeld() && !this.isOff()) {
+        if (!this.isSustained() && !this.isHeld() && !this.isOff()) {
             this.forceOff();
         }
     }
@@ -1927,6 +1939,11 @@ function setHold(midiChannel, midiControllerValue) {
     channelNoteSplashLists[midiChannel].forEach(ns => ns.note.hold(hold));
 }
 
+function setSostenuto(midiChannel, midiControllerValue) {
+    const sostenuto = midiControllerValue >= 64;
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.sustain(sostenuto));
+}
+
 function allSoundsOff(midiChannel) {
     channelNoteSplashLists[midiChannel].forEach(ns => ns.note.forceOff());
 }
@@ -1937,7 +1954,8 @@ function allNotesOff(midiChannel) {
 
 function allControllersOff(midiChannel) {
     channelHold[midiChannel] = false;
-    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.hold(channelHold[midiChannel]));
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.hold(false));
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.sustain(false));
 }
 
 function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
@@ -2008,6 +2026,7 @@ connectMidi().then();
 
 const controllerFuncMap = {
     64: setHold,
+    66: setSostenuto,
     120: allSoundsOff,
     123: allNotesOff,
     127: allControllersOff,
@@ -2072,6 +2091,4 @@ animateSplashes();
  * TODO:
  * - Density diffusion: make dependent on distance from center
  * - MIDI channel filter, e.g. ?channels=1,3,5-15
- * - MIDI messages:
- *  - ? Sustenuto (66)
  */
