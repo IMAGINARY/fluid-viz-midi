@@ -1935,6 +1935,11 @@ function allNotesOff(midiChannel) {
     channelNoteSplashLists[midiChannel].forEach(ns => ns.note.off());
 }
 
+function allControllersOff(midiChannel) {
+    channelHold[midiChannel] = false;
+    channelNoteSplashLists[midiChannel].forEach(ns => ns.note.hold(channelHold[midiChannel]));
+}
+
 function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
     const noteSplashList = channelNoteSplashLists[midiChannel];
     const turnOff = force ? (note) => note.forceOff() : (note) => note.off();
@@ -2005,6 +2010,7 @@ const controllerFuncMap = {
     64: setHold,
     120: allSoundsOff,
     123: allNotesOff,
+    127: allControllersOff,
 };
 
 function handleMidiControlChangeMessage(midiChannel, midiController, midiControllerValue) {
@@ -2067,6 +2073,5 @@ animateSplashes();
  * - Density diffusion: make dependent on distance from center
  * - MIDI channel filter, e.g. ?channels=1,3,5-15
  * - MIDI messages:
- *  - All Controllers Off (127)
  *  - ? Sustenuto (66)
  */
