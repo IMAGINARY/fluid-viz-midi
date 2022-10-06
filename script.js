@@ -710,6 +710,8 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
     uniform vec2 dyeTexelSize;
     uniform float dt;
     uniform float dissipation;
+    uniform float radius;
+    uniform float fadeWidth;
 
     vec4 bilerp (sampler2D sam, vec2 uv, vec2 tsize) {
         vec2 st = uv / tsize - 0.5;
@@ -726,6 +728,12 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
     }
 
     void main () {
+        vec2 center = vec2(0.5, 0.5);
+        float dist = length(center - vUv);
+        float t = clamp((dist - (radius - fadeWidth)) / fadeWidth, 0.0, 1.0);
+        t = t * t * t;
+        float fadedDissipation = dissipation * (1.0 - t) + 10.0 * t;
+    
     #ifdef MANUAL_FILTERING
         vec2 coord = vUv - dt * bilerp(uVelocity, vUv, texelSize).xy * texelSize;
         vec4 result = bilerp(uSource, coord, dyeTexelSize);
@@ -733,7 +741,7 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
         vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
         vec4 result = texture2D(uSource, coord);
     #endif
-        float decay = 1.0 + dissipation * dt;
+        float decay = 1.0 + fadedDissipation * dt;
         gl_FragColor = result / decay;
     }`,
     ext.supportLinearFiltering ? null : ['MANUAL_FILTERING']
@@ -1258,6 +1266,9 @@ function step (dt) {
     gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
     gl.uniform1f(advectionProgram.uniforms.dt, dt);
     gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
+    gl.uniform1f(advectionProgram.uniforms.radius, config.RADIUS);
+    gl.uniform1f(advectionProgram.uniforms.fadeWidth, config.FADE_WIDTH);
+
     blit(velocity.write);
     velocity.swap();
 
@@ -2114,8 +2125,3 @@ function animateSplashes(timeMs) {
     updateADSRNoteSplashes();
 }
 animateSplashes();
-
-/**
- * TODO:
- * - Density diffusion: make dependent on distance from center
- */
