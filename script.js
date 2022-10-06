@@ -558,6 +558,7 @@ const displayShaderSource = `
         float dist = length(center - vUv);
         vec3 black = vec3(0.0, 0.0, 0.0);
         float t = clamp((dist - (radius - fadeWidth)) / fadeWidth, 0.0, 1.0);
+        t = t * t * t; // cubic ramp for smooth transition between fade and non-fade region
         c = mix(c, black, t);
 
         float a = max(c.r, max(c.g, c.b));
