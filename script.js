@@ -1944,6 +1944,7 @@ function parseMidiChannelMask(mask) {
 const searchParams = new URLSearchParams(window.location.search);
 const midiPortNames = searchParams.getAll('midiPort');
 const midiChannelMask = parseMidiChannelMask(searchParams.get('midiChannelMask') ?? "1111111111111111");
+const useMidiPlayer = searchParams.has('useMidiPlayer');
 
 function useChannel(midiChannel) {
     const midiChannelBit = 0b1 << midiChannel;
@@ -1955,10 +1956,8 @@ async function connectMidi() {
     const midiPortFilterPredicate = ({name}) => midiPortNames.indexOf(name) !== -1;
     const midiPorts = [...midiAccess.inputs.values()].filter(midiPortFilterPredicate);
     await Promise.all(midiPorts.map(m => m.open()));
-    midiPorts.forEach(m => m.onmidimessage = handleMidiMessage);
+    midiPorts.forEach(m => m.onmidimessage = handleMidiEvent);
 }
-
-connectMidi().then();
 
 const controllerFuncMap = {
     64: setHold,
@@ -2015,19 +2014,23 @@ function handleMidiSystemMessage(subtype, ...data) {
     func(...data);
 }
 
-function handleMidiMessage(event) {
-    const status = event.data[0];
+function handleMidiMessage(data) {
+    const status = data[0];
     const type = status >> 4;
     if (0b1000 <= type && type <= 0b1110) {
         // MIDI channel message
         const subtype = type & 0b0111;
         const channel = status & 0b00001111;
-        handleMidiChannelMessage(subtype, channel, ...event.data.subarray(1));
+        handleMidiChannelMessage(subtype, channel, ...data.slice(1));
     } else {
         // MIDI system message
         const subtype = status & 0b00001111;
-        handleMidiSystemMessage(subtype, ...event.data.subarray(1))
+        handleMidiSystemMessage(subtype, ...data.slice(1))
     }
+}
+
+function handleMidiEvent(event) {
+    handleMidiMessage(event.data);
 }
 
 function animateSplashes(timeMs) {
@@ -2035,3 +2038,32 @@ function animateSplashes(timeMs) {
     updateADSRNoteSplashes();
 }
 animateSplashes();
+
+function setupMidiPlayer() {
+    const playerContainerElement = document.getElementById('midi-player-container');
+    JZZ.synth.Tiny.register('Tiny WebAudio synthesizer');
+    const midiPlayerOptions = {
+        at: playerContainerElement,
+        ports: ["Tiny WebAudio synthesizer"],
+        file: true,
+    }
+    const midiPlayer = new JZZ.gui.Player(midiPlayerOptions);
+    midiPlayer.connect(handleMidiMessage);
+
+    let playerAutoHideTimeout = 0;
+
+    function showPlayer() {
+        playerContainerElement.style.opacity = "1.0";
+        clearTimeout(playerAutoHideTimeout);
+        playerAutoHideTimeout = setTimeout(() => playerContainerElement.style.opacity = "0.0", 1000);
+    }
+
+    showPlayer();
+    window.addEventListener("mousemove", showPlayer);
+}
+
+if (useMidiPlayer) {
+    setupMidiPlayer();
+} else {
+    connectMidi().then();
+}

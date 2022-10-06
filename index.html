@@ -22,6 +22,12 @@
         <meta property="og:image" content="https://paveldogreat.github.io/WebGL-Fluid-Simulation/logo.png">
 
         <script type="text/javascript" src="vendor/victor.min.js"></script>
+
+        <script src="vendor/JZZ.js"></script>
+        <script src="vendor/JZZ.synth.Tiny.js"></script>
+        <script src="vendor/JZZ.midi.SMF.js"></script>
+        <script src="vendor/JZZ.gui.Player.js"></script>
+
         <style>
             * {
                 user-select: none;
@@ -54,12 +60,24 @@
                 width: 100vmin;
                 height: 100vmin;
             }
+
+            #midi-player-container {
+                transition: 1s;
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+
+            #midi-player-container:hover {
+                opacity: 1.0 !important;
+            }
         </style>
     </head>
     <body>
         <div id="canvas-container">
             <canvas></canvas>
         </div>
+        <div id="midi-player-container"></div>
         <script type="module" src="./script.js" defer></script>
     </body>
 </html>
