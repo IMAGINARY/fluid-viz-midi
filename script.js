@@ -2037,46 +2037,57 @@ function handleMidiControlChangeMessage(midiChannel, midiController, midiControl
     controllerFunc(midiChannel, midiControllerValue);
 }
 
+function noteOff(channel, note) {
+    releaseADSRNoteSplash(channel, note);
+}
+
+function noteOn(channel, note, velocity) {
+    addADSRNoteSplash(channel, note, velocity);
+}
+
+function controlChange(channel, controller, value) {
+    handleMidiControlChangeMessage(channel, controller, value);
+}
+
+const channelMessageFuncMap = {
+    0b000: noteOff,
+    0b001: noteOn,
+    0b011: controlChange,
+}
+
+function handleMidiChannelMessage(subtype, channel, ...data) {
+    const func = channelMessageFuncMap[subtype] ?? (() => undefined);
+    func(channel, ...data);
+}
+
+function reset() {
+    for (let channel = 0; channel < 16; channel += 1) {
+        allControllersOff(channel);
+        allSoundsOff(channel);
+    }
+}
+
+const systemMessageFuncMap = {
+    0b1111: reset,
+}
+
+function handleMidiSystemMessage(subtype, ...data) {
+    const func = systemMessageFuncMap[subtype] ?? (() => undefined);
+    func(...data);
+}
+
 function handleMidiMessage(event) {
     const status = event.data[0];
-    const data0 = event.data[1];
-    const data1 = event.data[2];
-
-    const message = status & 0b11110000;
-    let decodedMessage;
-    switch (message) {
-        case 0b10010000: {
-            const type = "Note On";
-            const channel = status & 0b00001111;
-            const note = data0;
-            const velocity = data1;
-            decodedMessage = {type, channel, note, velocity};
-            addADSRNoteSplash(channel, note, velocity);
-            break;
-        }
-        case 0b10000000: {
-            const type = "Note Off";
-            const channel = status & 0b00001111;
-            const note = data0;
-            const velocity = data1;
-            decodedMessage = {type, channel, note, velocity};
-            releaseADSRNoteSplash(channel, note);
-            break;
-        }
-        case 0b10110000: {
-            const type = "Control Change";
-            const channel = status & 0b00001111;
-            const controller = data0;
-            const value = data1;
-            decodedMessage = {type, channel, controller, value};
-            handleMidiControlChangeMessage(channel, controller, value);
-            break;
-        }
-        default: {
-            decodedMessage = {status, data0, data1};
-            console.log("Unknown MIDI message type!", decodedMessage);
-            break;
-        }
+    const type = status >> 4;
+    if (0b1000 <= type && type <= 0b1110) {
+        // MIDI channel message
+        const subtype = type & 0b0111;
+        const channel = status & 0b00001111;
+        handleMidiChannelMessage(subtype, channel, ...event.data.subarray(1));
+    } else {
+        // MIDI system message
+        const subtype = status & 0b00001111;
+        handleMidiSystemMessage(subtype, ...event.data.subarray(1))
     }
 }
 
