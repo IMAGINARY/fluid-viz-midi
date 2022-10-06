@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-import * as dat from './dat.gui.module.js';
+import * as dat from './vendor/dat.gui.module.js';
 
 'use strict';
 
