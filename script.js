@@ -2052,3 +2052,14 @@ function animateSplashes(timeMs) {
     updateADSRNoteSplashes();
 }
 animateSplashes();
+
+/**
+ * TODO:
+ * - Density diffusion: make dependent on distance from center
+ * - MIDI channel filter, e.g. ?channels=1,3,5-15
+ * - MIDI messages:
+ *  - All Controllers Off (127)
+ *  - All Notes Off (123)
+ *  - All Sounds Off (120)
+ *  - ? Sustenuto (66)
+ */
