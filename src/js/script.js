@@ -22,9 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-import * as dat from './vendor/dat.gui.module.js';
+import * as JZZ from 'jzz';
+import * as JZZSynthTiny from 'jzz-synth-tiny';
+import * as JZZMidiSmf from 'jzz-midi-smf';
+import * as JZZGuiPlayer from 'jzz-gui-player';
+import * as Victor from 'victor';
 
-'use strict';
+import * as dat from 'dat.gui';
+
+JZZ(JZZSynthTiny);
+JZZ(JZZMidiSmf);
+JZZ(JZZGuiPlayer);
 
 // Simulation section
 
@@ -1911,6 +1919,7 @@ function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
 }
 
 function addADSRNoteSplash(midiChannel, midiNote, midiVelocity) {
+    console.log(midiChannel, midiNote, midiVelocity);
     releaseADSRNoteSplash(midiChannel, midiNote, true);
 
     const noteSplashList = channelNoteSplashLists[midiChannel];
@@ -2067,6 +2076,7 @@ if (useMidiPlayer) {
 } else {
     connectMidi().then();
 }
+
 
 /**
  * TODO:
