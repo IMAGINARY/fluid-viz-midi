@@ -2067,3 +2067,10 @@ if (useMidiPlayer) {
 } else {
     connectMidi().then();
 }
+
+/**
+ * TODO:
+ *  - Factor out MIDI connection handling and messaging into separate class and file
+ *  - Prefer warm colors over cold colors
+ *  - Loop through pre-defined sets of visualization parameters
+ */
