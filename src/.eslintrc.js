@@ -1,19 +1,36 @@
 module.exports = {
   root: true,
+  env: {
+    browser: true,
+    es6: true,
+  },
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: 'module',
+    ecmaFeatures: {},
+  },
+  extends: [
+    'eslint:recommended',
+    'airbnb-base',
+    'plugin:compat/recommended',
+    'prettier',
+  ],
+  rules: {
+    'no-underscore-dangle': [
+      'error',
+      {
+        allowAfterThis: true,
+      },
+    ],
+
+    'import/prefer-default-export': 'off',
+  },
   overrides: [
     {
-      files: ['**/*.ts', '**/*.tsx'],
-
-      env: {
-        browser: true,
-        es6: true,
-      },
-      globals: {
-        CindyJS: 'readonly',
-      },
+      files: ['**/*.ts'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
-        ecmaVersion: 2021,
+        ecmaVersion: 2022,
         sourceType: 'module',
         ecmaFeatures: {},
         project: 'tsconfig.json',
@@ -29,16 +46,6 @@ module.exports = {
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
         'prettier',
       ],
-      rules: {
-        'no-underscore-dangle': [
-          'error',
-          {
-            allowAfterThis: true,
-          },
-        ],
-
-        'import/prefer-default-export': 'off',
-      },
     },
   ],
 };

@@ -11,10 +11,7 @@
     "target": "es2022",
     "moduleResolution": "node",
     "lib": ["ES2021", "dom"],
-    "paths": {
-      "CindyJS": ["./ts/CindyJS.d.ts"]
-    },
-    "typeRoots": ["./ts", "../node_modules/@types"]
+    "typeRoots": ["./ts", "./ts/types.d.ts", "../node_modules/@types"]
   },
   "include": ["./ts/**/*.ts"]
 }

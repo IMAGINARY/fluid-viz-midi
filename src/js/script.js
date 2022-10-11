@@ -30,7 +30,7 @@ import * as Victor from 'victor';
 
 import * as dat from 'dat.gui';
 
-import shaderSources from './shader-sources';
+import shaderSources from '../ts/shader-sources';
 
 JZZ(JZZSynthTiny);
 JZZ(JZZMidiSmf);
