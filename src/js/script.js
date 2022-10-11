@@ -1435,4 +1435,4 @@ function hashCode(s) {
   return hash;
 }
 
-export {splat, generateColor, config};
+export { splat, generateColor, config };

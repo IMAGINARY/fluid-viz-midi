@@ -73,7 +73,7 @@
   "scripts": {
     "serve": "parcel serve",
     "build": "parcel build",
-    "format": "prettier -w src/ts src/glsl src/js/ ",
+    "format": "prettier -w .",
     "lint": "eslint src",
     "lint:fix": "eslint --fix src",
     "test": "echo \"Error: no test specified\" && exit 1"

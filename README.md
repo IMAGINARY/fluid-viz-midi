@@ -1,13 +1,16 @@
 # Navier stroke
 
-A [WebGL-based fluid simulation app](https://github.com/PavelDoGreat/WebGL-Fluid-Simulation)
-with adjusted default parameters and added idle animations targeting exhibitions.
+A
+[WebGL-based fluid simulation app](https://github.com/PavelDoGreat/WebGL-Fluid-Simulation)
+with adjusted default parameters and added idle animations targeting
+exhibitions.
 
-![Screenshot](./screenshot.jpg "Fluid simulation screenshot")
+![Screenshot](./screenshot.jpg 'Fluid simulation screenshot')
 
 ## Options
 
 The app's idle mode can be configured via URL parameters:
+
 ```
 idleTimeout = 20 // start idle mode after 20s of inactivity
 idleDuration = 3 * 60 // stop idle mode after 3min (and then wait for idleTimeout again)
