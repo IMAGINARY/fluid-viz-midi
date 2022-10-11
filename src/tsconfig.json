@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "declaration": true,
+    "declarationMap": true,
+    "strict": true,
+    "alwaysStrict": true,
+    "esModuleInterop": true,
+    "module": "es2022",
+    "target": "es2022",
+    "moduleResolution": "node",
+    "lib": ["ES2021", "dom"],
+    "typeRoots": ["./ts", "./ts/types.d.ts", "../node_modules/@types"]
+  },
+  "include": ["./ts/**/*.ts"]
+}
