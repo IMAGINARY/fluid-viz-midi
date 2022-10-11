@@ -4,3 +4,4 @@ quoteProps: consistent
 singleQuote: true
 trailingComma: all
 proseWrap: always
+overrides: [{ 'files': ['*.vert','*.frag'], 'options': { 'parser': 'glsl-parser' } }]

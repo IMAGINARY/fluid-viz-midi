@@ -3,3 +3,4 @@ dist
 dist-dev
 .git
 .parcel-cache
+src/js/script.js
