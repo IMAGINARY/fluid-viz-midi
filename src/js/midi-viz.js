@@ -7,9 +7,12 @@ import * as Victor from 'victor';
 
 import { splat, generateColor, config } from './script';
 
-JZZ(JZZSynthTiny);
-JZZ(JZZMidiSmf);
-JZZ(JZZGuiPlayer);
+import MidiInput from '../ts/midi-input.ts';
+import MidiMessageProcessor from '../ts/midi-message-processor.ts';
+
+JZZSynthTiny(JZZ);
+JZZMidiSmf(JZZ);
+JZZGuiPlayer(JZZ);
 
 class ADSREnvelope {
   static CURVE = {
@@ -369,53 +372,12 @@ const midiChannelMask = parseMidiChannelMask(
 );
 const useMidiPlayer = searchParams.has('useMidiPlayer');
 
-function useChannel(midiChannel) {
-  /* eslint-disable no-bitwise */
-  const midiChannelBit = 0b1 << midiChannel;
-  return midiChannelMask & (midiChannelBit !== 0b0);
-  /* eslint-enable no-bitwise */
-}
-
-const controllerFuncMap = {
-  64: setHold,
-  66: setSostenuto,
-  120: allSoundsOff,
-  123: allNotesOff,
-  127: allControllersOff,
-};
-
-function handleMidiControlChangeMessage(
-  midiChannel,
-  midiController,
-  midiControllerValue,
-) {
-  const controllerFunc = controllerFuncMap[midiController] ?? (() => undefined);
-  controllerFunc(midiChannel, midiControllerValue);
-}
-
 function noteOff(channel, note) {
   releaseADSRNoteSplash(channel, note);
 }
 
 function noteOn(channel, note, velocity) {
   addADSRNoteSplash(channel, note, velocity);
-}
-
-function controlChange(channel, controller, value) {
-  handleMidiControlChangeMessage(channel, controller, value);
-}
-
-const channelMessageFuncMap = {
-  0b000: noteOff,
-  0b001: noteOn,
-  0b011: controlChange,
-};
-
-function handleMidiChannelMessage(subtype, channel, ...data) {
-  if (!useChannel(channel)) return;
-
-  const func = channelMessageFuncMap[subtype] ?? (() => undefined);
-  func(channel, ...data);
 }
 
 function reset() {
@@ -425,55 +387,35 @@ function reset() {
   }
 }
 
-const systemMessageFuncMap = {
-  0b1111: reset,
-};
-
-function handleMidiSystemMessage(subtype, ...data) {
-  const func = systemMessageFuncMap[subtype] ?? (() => undefined);
-  func(...data);
-}
-
-function handleMidiMessage(data) {
-  /* eslint-disable no-bitwise */
-  const status = data[0];
-  //
-  const type = status >> 4;
-  if (type >= 0b1000 && type <= 0b1110) {
-    // MIDI channel message
-    const subtype = type & 0b0111;
-    const channel = status & 0b00001111;
-    handleMidiChannelMessage(subtype, channel, ...data.slice(1));
-  } else {
-    // MIDI system message
-    const subtype = status & 0b00001111;
-    handleMidiSystemMessage(subtype, ...data.slice(1));
-  }
-  /* eslint-enable no-bitwise */
-}
-
-function handleMidiEvent(event) {
-  handleMidiMessage(event.data);
-}
-
-async function connectMidi() {
-  const midiAccess = await navigator.requestMIDIAccess();
-  const midiPortFilterPredicate = ({ name }) =>
-    midiPortNames.indexOf(name) !== -1;
-  const midiPorts = [...midiAccess.inputs.values()].filter(
-    midiPortFilterPredicate,
-  );
-  await Promise.all(midiPorts.map((m) => m.open()));
-  midiPorts.forEach((m) => m.addEventListener('midimessage', handleMidiEvent));
-}
-
 function animateSplashes() {
   requestAnimationFrame(animateSplashes);
   updateADSRNoteSplashes();
 }
 animateSplashes();
 
-function setupMidiPlayer() {
+function registerMidiMessageEventHandlers(processor) {
+  processor.on('note-on', noteOn);
+  processor.on('note-off', noteOff);
+  processor.on('control-change-hold', setHold);
+  processor.on('control-change-sostenuto', setSostenuto);
+  processor.on('control-change-all-sounds-off', allSoundsOff);
+  processor.on('control-change-all-notes-off', allNotesOff);
+  processor.on('control-change-all-controllers-off', allControllersOff);
+  processor.on('sysex-realtime-reset', reset);
+}
+
+async function setupMidiInput(midiInputOptions) {
+  const midiAccess = await navigator.requestMIDIAccess();
+  const midiInput = await MidiInput.createOnceAvailable(
+    midiAccess,
+    midiPortNames[0],
+    midiInputOptions,
+  );
+  console.log('Connected to MIDI input!', midiInput);
+  return midiInput.getProcessor();
+}
+
+async function setupMidiPlayer(midiProcessorOptions) {
   const playerContainerElement = document.getElementById(
     'midi-player-container',
   );
@@ -483,8 +425,10 @@ function setupMidiPlayer() {
     ports: ['Tiny WebAudio synthesizer'],
     file: true,
   };
+  const midiProcessor = new MidiMessageProcessor(midiProcessorOptions);
   const midiPlayer = new JZZ.gui.Player(midiPlayerOptions);
-  midiPlayer.connect(handleMidiMessage);
+  midiPlayer.connect(midiProcessor.process.bind(midiProcessor));
+  registerMidiMessageEventHandlers(midiProcessor);
 
   let playerAutoHideTimeout = 0;
 
@@ -498,17 +442,21 @@ function setupMidiPlayer() {
 
   showPlayer();
   window.addEventListener('mousemove', showPlayer);
+
+  return Promise.resolve(midiProcessor);
 }
 
-if (useMidiPlayer) {
-  setupMidiPlayer();
-} else {
-  connectMidi().then();
+async function main() {
+  const options = { channelMask: midiChannelMask };
+  const initializer = useMidiPlayer ? setupMidiPlayer : setupMidiInput;
+  const processor = await initializer(options);
+  registerMidiMessageEventHandlers(processor);
 }
+
+main().catch((e) => console.log(e));
 
 /**
  * TODO:
- *  - Factor out MIDI connection handling and messaging into separate class and file
  *  - Prefer warm colors over cold colors
  *  - Loop through pre-defined sets of visualization parameters
  */

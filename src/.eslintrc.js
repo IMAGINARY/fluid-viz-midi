@@ -22,8 +22,8 @@ module.exports = {
         allowAfterThis: true,
       },
     ],
-
     'import/prefer-default-export': 'off',
+    'no-void': ['error', { allowAsStatement: true }],
   },
   overrides: [
     {
@@ -46,6 +46,22 @@ module.exports = {
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
         'prettier',
       ],
+      rules: {
+        'no-underscore-dangle': [
+          'error',
+          {
+            allowAfterThis: true,
+          },
+        ],
+        'import/prefer-default-export': 'off',
+        'no-void': ['error', { allowAsStatement: true }],
+        '@typescript-eslint/no-floating-promises': [
+          'error',
+          {
+            ignoreVoid: true,
+          },
+        ],
+      },
     },
   ],
 };
