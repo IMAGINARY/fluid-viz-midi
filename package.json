@@ -29,6 +29,12 @@
       "distDir": "./"
     }
   },
+  "engines": {
+    "browsers": "defaults and supports webgl2 and supports midi"
+  },
+  "browserslist": [
+    "defaults and supports webgl2 and supports midi"
+  ],
   "devDependencies": {
     "@parcel/packager-ts": "^2.7.0",
     "@parcel/transformer-glsl": "^2.7.0",

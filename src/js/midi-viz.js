@@ -1,10 +1,11 @@
+// eslint-disable-next-line max-classes-per-file
 import * as JZZ from 'jzz';
 import * as JZZSynthTiny from 'jzz-synth-tiny';
 import * as JZZMidiSmf from 'jzz-midi-smf';
 import * as JZZGuiPlayer from 'jzz-gui-player';
 import * as Victor from 'victor';
 
-import {splat, generateColor, config} from "./script";
+import { splat, generateColor, config } from './script';
 
 JZZ(JZZSynthTiny);
 JZZ(JZZMidiSmf);
@@ -87,14 +88,15 @@ class ADSREnvelope {
     // Determine the volume level at releaseTime
     let timeInSection = elapsedTime;
     let sourceLevel = 0.0;
-    for (const { duration, targetLevel, curve } of [this.attack, this.decay]) {
+    [this.attack, this.decay].forEach(({ duration, targetLevel, curve }) => {
       if (timeInSection <= duration) {
         // The current section is the one we have to apply the curve to
-        return curve(timeInSection, 0, duration, sourceLevel, targetLevel);
+        curve(timeInSection, 0, duration, sourceLevel, targetLevel);
+        return;
       }
       timeInSection -= duration;
       sourceLevel = targetLevel;
-    }
+    });
     return this.options.sustainLevel;
   }
 
@@ -122,21 +124,21 @@ class ADSREnvelope {
       return 0.0;
     }
 
-    releaseTime = this._minReleaseTime(releaseTime);
+    const minReleaseTime = this._minReleaseTime(releaseTime);
 
-    if (elapsedTime < releaseTime) {
+    if (elapsedTime < minReleaseTime) {
       // Note has not yet been released
       return this._valueAtADS(elapsedTime);
     }
 
-    const timeInReleaseSection = elapsedTime - releaseTime;
-    const levelAtReleaseTime = this._valueAtADS(releaseTime);
+    const timeInReleaseSection = elapsedTime - minReleaseTime;
+    const levelAtReleaseTime = this._valueAtADS(minReleaseTime);
     return this._valueAtR(timeInReleaseSection, levelAtReleaseTime);
   }
 
   isOver(elapsedTime, releaseTime = Infinity) {
-    releaseTime = this._minReleaseTime(releaseTime);
-    const timeInReleaseSection = elapsedTime - releaseTime;
+    const minReleaseTime = this._minReleaseTime(releaseTime);
+    const timeInReleaseSection = elapsedTime - minReleaseTime;
     const { duration } = this.release;
     return timeInReleaseSection > duration;
   }
@@ -218,7 +220,7 @@ class Note {
   }
 }
 
-const adsr = new ADSREnvelope({
+const adsrEnvelope = new ADSREnvelope({
   attackTime: 0.01,
   decayTime: 2,
   sustainDuration: 0,
@@ -229,7 +231,7 @@ const adsr = new ADSREnvelope({
   releaseCurve: ADSREnvelope.CURVE.EXPONENTIAL,
 });
 
-const channelEnvelopes = Array(16).fill(adsr);
+const channelEnvelopes = Array(16).fill(adsrEnvelope);
 
 class NoteEnvelopeSplash {
   static secondsPerRotation = 10;
@@ -339,9 +341,8 @@ function addADSRNoteSplash(midiChannel, midiNote, midiVelocity) {
 }
 
 function updateADSRNoteSplashes() {
-  channelNoteSplashLists.forEach((noteSplashList, channel) => {
-    let i = noteSplashList.length;
-    while (i--) {
+  channelNoteSplashLists.forEach((noteSplashList) => {
+    for (let i = noteSplashList.length - 1; i >= 0; i -= 1) {
       const noteSplash = noteSplashList[i];
       noteSplash.update();
       if (noteSplash.note.isOver()) {
@@ -353,6 +354,7 @@ function updateADSRNoteSplashes() {
 
 function parseMidiChannelMask(mask) {
   if (!/^[01]{16}$/.test(mask)) {
+    // eslint-disable-next-line no-console
     console.error(
       `MIDI channel mask "${mask}" has invalid format. It must be 16 characters being either '0' or '1'. Channel 1 corresponds to the rightmost bit.`,
     );
@@ -368,19 +370,10 @@ const midiChannelMask = parseMidiChannelMask(
 const useMidiPlayer = searchParams.has('useMidiPlayer');
 
 function useChannel(midiChannel) {
+  /* eslint-disable no-bitwise */
   const midiChannelBit = 0b1 << midiChannel;
   return midiChannelMask & (midiChannelBit !== 0b0);
-}
-
-async function connectMidi() {
-  const midiAccess = await navigator.requestMIDIAccess();
-  const midiPortFilterPredicate = ({ name }) =>
-    midiPortNames.indexOf(name) !== -1;
-  const midiPorts = [...midiAccess.inputs.values()].filter(
-    midiPortFilterPredicate,
-  );
-  await Promise.all(midiPorts.map((m) => m.open()));
-  midiPorts.forEach((m) => (m.onmidimessage = handleMidiEvent));
+  /* eslint-enable no-bitwise */
 }
 
 const controllerFuncMap = {
@@ -442,7 +435,9 @@ function handleMidiSystemMessage(subtype, ...data) {
 }
 
 function handleMidiMessage(data) {
+  /* eslint-disable no-bitwise */
   const status = data[0];
+  //
   const type = status >> 4;
   if (type >= 0b1000 && type <= 0b1110) {
     // MIDI channel message
@@ -454,13 +449,25 @@ function handleMidiMessage(data) {
     const subtype = status & 0b00001111;
     handleMidiSystemMessage(subtype, ...data.slice(1));
   }
+  /* eslint-enable no-bitwise */
 }
 
 function handleMidiEvent(event) {
   handleMidiMessage(event.data);
 }
 
-function animateSplashes(timeMs) {
+async function connectMidi() {
+  const midiAccess = await navigator.requestMIDIAccess();
+  const midiPortFilterPredicate = ({ name }) =>
+    midiPortNames.indexOf(name) !== -1;
+  const midiPorts = [...midiAccess.inputs.values()].filter(
+    midiPortFilterPredicate,
+  );
+  await Promise.all(midiPorts.map((m) => m.open()));
+  midiPorts.forEach((m) => m.addEventListener('midimessage', handleMidiEvent));
+}
+
+function animateSplashes() {
   requestAnimationFrame(animateSplashes);
   updateADSRNoteSplashes();
 }
@@ -484,10 +491,9 @@ function setupMidiPlayer() {
   function showPlayer() {
     playerContainerElement.style.opacity = '1.0';
     clearTimeout(playerAutoHideTimeout);
-    playerAutoHideTimeout = setTimeout(
-      () => (playerContainerElement.style.opacity = '0.0'),
-      1000,
-    );
+    playerAutoHideTimeout = setTimeout(() => {
+      playerContainerElement.style.opacity = '0.0';
+    }, 1000);
   }
 
   showPlayer();
