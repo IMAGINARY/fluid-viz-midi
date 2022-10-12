@@ -9,86 +9,12 @@ import { splat, generateColor, config } from './script';
 
 import MidiInput from '../ts/midi-input.ts';
 import MidiMessageProcessor from '../ts/midi-message-processor.ts';
+import ADSREnvelope from '../ts/adsr-envelope.ts';
+import Note from '../ts/note.ts';
 
 JZZSynthTiny(JZZ);
 JZZMidiSmf(JZZ);
 JZZGuiPlayer(JZZ);
-
-class Note {
-  constructor(midiNote, midiVelocity, envelope) {
-    this.midiNote = midiNote;
-    this.midiVelocity = midiVelocity;
-    this.envelope = envelope;
-    this.startTime = performance.now() / 1000.0;
-    this.releaseTime = Infinity;
-    this.holdState = false;
-    this.sustainState = false;
-    this.shouldRelease = false;
-  }
-
-  elapsedTime() {
-    return performance.now() / 1000.0 - this.startTime;
-  }
-
-  sustain(enable) {
-    if (
-      !enable &&
-      this.sustainState &&
-      this.shouldRelease &&
-      !this.isHeld() &&
-      !this.isOff()
-    ) {
-      this.forceOff();
-    }
-    this.holdState = enable;
-  }
-
-  isSustained() {
-    return this.sustainState;
-  }
-
-  hold(enable) {
-    if (
-      !enable &&
-      this.holdState &&
-      this.shouldRelease &&
-      !this.isSustained() &&
-      !this.isOff()
-    ) {
-      this.forceOff();
-    }
-    this.holdState = enable;
-  }
-
-  isHeld() {
-    return this.holdState;
-  }
-
-  isOff() {
-    return this.releaseTime !== Infinity;
-  }
-
-  off() {
-    this.shouldRelease = true;
-    if (!this.isSustained() && !this.isHeld() && !this.isOff()) {
-      this.forceOff();
-    }
-  }
-
-  forceOff() {
-    this.releaseTime = this.elapsedTime();
-  }
-
-  getVolume() {
-    return (
-      (this.midiVelocity / 127.0) * this.envelope.valueAt(this.elapsedTime())
-    );
-  }
-
-  isOver() {
-    return this.envelope.isOver(this.elapsedTime(), this.releaseTime);
-  }
-}
 
 const adsrEnvelope = new ADSREnvelope({
   attackTime: 0.01,
@@ -96,9 +22,9 @@ const adsrEnvelope = new ADSREnvelope({
   sustainDuration: 0,
   sustainLevel: 0.4,
   releaseTime: 0.7,
-  attackCurve: ADSREnvelope.CURVE.LINEAR,
-  decayCurve: ADSREnvelope.CURVE.EXPONENTIAL,
-  releaseCurve: ADSREnvelope.CURVE.EXPONENTIAL,
+  attackCurve: ADSREnvelope.CURVES.LINEAR,
+  decayCurve: ADSREnvelope.CURVES.EXPONENTIAL,
+  releaseCurve: ADSREnvelope.CURVES.EXPONENTIAL,
 });
 
 const channelEnvelopes = Array(16).fill(adsrEnvelope);
