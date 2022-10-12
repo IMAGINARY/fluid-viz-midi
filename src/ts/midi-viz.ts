@@ -1,78 +1,86 @@
-// eslint-disable-next-line max-classes-per-file
-import * as JZZ from 'jzz';
-import * as JZZSynthTiny from 'jzz-synth-tiny';
-import * as JZZMidiSmf from 'jzz-midi-smf';
-import * as JZZGuiPlayer from 'jzz-gui-player';
-
-import MidiInput from '../ts/midi-input.ts';
-import MidiMessageProcessor from '../ts/midi-message-processor.ts';
-import ADSREnvelope from '../ts/adsr-envelope.ts';
-import NoteEnvelopeSplash from '../ts/note-envelope-splash.ts';
+import MidiInput from './midi-input';
+import MidiMessageProcessor, {
+  MidiMessageProcessorOptions,
+} from './midi-message-processor';
+import ADSREnvelope from './adsr-envelope';
+import NoteEnvelopeSplash from './note-envelope-splash';
 import { HSVtoRGB } from './script';
-
-JZZSynthTiny(JZZ);
-JZZMidiSmf(JZZ);
-JZZGuiPlayer(JZZ);
+import { createJzzPlayer } from './jzz';
+import Note from './note';
+import options from './options';
 
 const adsrEnvelope = new ADSREnvelope({
-  attackTime: 0.01,
-  decayTime: 2,
+  attackDuration: 0.01,
+  decayDuration: 2,
   sustainDuration: 0,
   sustainLevel: 0.4,
-  releaseTime: 0.7,
+  releaseDuration: 0.7,
   attackCurve: ADSREnvelope.CURVES.LINEAR,
   decayCurve: ADSREnvelope.CURVES.EXPONENTIAL,
   releaseCurve: ADSREnvelope.CURVES.EXPONENTIAL,
 });
 
-const channelEnvelopes = Array(16).fill(adsrEnvelope);
+const channelEnvelopes: ADSREnvelope[] =
+  Array<ADSREnvelope>(16).fill(adsrEnvelope);
 
-const channelNoteSplashLists = new Array(16).fill(null).map(() => []);
-const channelHold = new Array(16).fill(false);
+const channelNoteSplashLists: NoteEnvelopeSplash[][] = new Array(16)
+  .fill(null)
+  .map(() => []);
+const channelHold: boolean[] = new Array<boolean>(16).fill(false);
 
-function setHold(midiChannel, midiControllerValue) {
+function setHold(midiChannel: number, midiControllerValue: number) {
   const hold = midiControllerValue >= 64;
   channelHold[midiChannel] = hold;
   channelNoteSplashLists[midiChannel].forEach((ns) => ns.note.hold(hold));
 }
 
-function setSostenuto(midiChannel, midiControllerValue) {
+function setSostenuto(midiChannel: number, midiControllerValue: number) {
   const sostenuto = midiControllerValue >= 64;
   channelNoteSplashLists[midiChannel].forEach((ns) =>
     ns.note.sustain(sostenuto),
   );
 }
 
-function allSoundsOff(midiChannel) {
+function allSoundsOff(midiChannel: number) {
   channelNoteSplashLists[midiChannel].forEach((ns) => ns.note.forceOff());
 }
 
-function allNotesOff(midiChannel) {
+function allNotesOff(midiChannel: number) {
   channelNoteSplashLists[midiChannel].forEach((ns) => ns.note.off());
 }
 
-function allControllersOff(midiChannel) {
+function allControllersOff(midiChannel: number) {
   channelHold[midiChannel] = false;
   channelNoteSplashLists[midiChannel].forEach((ns) => ns.note.hold(false));
   channelNoteSplashLists[midiChannel].forEach((ns) => ns.note.sustain(false));
 }
 
-function releaseADSRNoteSplash(midiChannel, midiNote, force = false) {
+function releaseADSRNoteSplash(
+  midiChannel: number,
+  midiNote: number,
+  force = false,
+) {
   const noteSplashList = channelNoteSplashLists[midiChannel];
-  const turnOff = force ? (note) => note.forceOff() : (note) => note.off();
+  const turnOff: (note: Note) => void = force
+    ? (note) => note.forceOff()
+    : (note) => note.off();
   noteSplashList
     .map(({ note }) => note)
     .filter((note) => note.midiNote === midiNote)
     .forEach(turnOff);
 }
 
-function addADSRNoteSplash(midiChannel, midiNote, midiVelocity) {
+function addADSRNoteSplash(
+  midiChannel: number,
+  midiNote: number,
+  midiVelocity: number,
+) {
   releaseADSRNoteSplash(midiChannel, midiNote, true);
 
   const noteSplashList = channelNoteSplashLists[midiChannel];
   const adsr = channelEnvelopes[midiChannel];
   // FIXME: brightness should not be above 1.0; used here for backwards compatibility
-  const brightness = 1.0 * 0.15 * 10.0;
+  const brightness = 0.15 * 10.0;
   const color = HSVtoRGB(Math.random(), 1.0, brightness);
   const noteSplash = new NoteEnvelopeSplash(
     midiNote,
@@ -97,28 +105,11 @@ function updateADSRNoteSplashes() {
   });
 }
 
-function parseMidiChannelMask(mask) {
-  if (!/^[01]{16}$/.test(mask)) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `MIDI channel mask "${mask}" has invalid format. It must be 16 characters being either '0' or '1'. Channel 1 corresponds to the rightmost bit.`,
-    );
-  }
-  return Number.parseInt(mask, 2);
-}
-
-const searchParams = new URLSearchParams(window.location.search);
-const midiPortNames = searchParams.getAll('midiPort');
-const midiChannelMask = parseMidiChannelMask(
-  searchParams.get('midiChannelMask') ?? '1111111111111111',
-);
-const useMidiPlayer = searchParams.has('useMidiPlayer');
-
-function noteOff(channel, note) {
+function noteOff(channel: number, note: number) {
   releaseADSRNoteSplash(channel, note);
 }
 
-function noteOn(channel, note, velocity) {
+function noteOn(channel: number, note: number, velocity: number) {
   addADSRNoteSplash(channel, note, velocity);
 }
 
@@ -135,7 +126,7 @@ function animateSplashes() {
 }
 animateSplashes();
 
-function registerMidiMessageEventHandlers(processor) {
+function registerMidiMessageEventHandlers(processor: MidiMessageProcessor) {
   processor.on('note-on', noteOn);
   processor.on('note-off', noteOff);
   processor.on('control-change-hold', setHold);
@@ -146,56 +137,73 @@ function registerMidiMessageEventHandlers(processor) {
   processor.on('sysex-realtime-reset', reset);
 }
 
-async function setupMidiInput(midiInputOptions) {
+async function setupMidiInput(
+  midiPortName: string,
+  midiProcessorOptions: MidiMessageProcessorOptions,
+): Promise<MidiMessageProcessor> {
+  /* eslint-disable no-console */
   const midiAccess = await navigator.requestMIDIAccess();
+  console.log(`Trying to connect to MIDI input "${midiPortName}" ...`);
   const midiInput = await MidiInput.createOnceAvailable(
     midiAccess,
-    midiPortNames[0],
-    midiInputOptions,
+    midiPortName,
+    midiProcessorOptions,
   );
   console.log('Connected to MIDI input!', midiInput);
   return midiInput.getProcessor();
+  /* eslint-enable no-console */
 }
 
-async function setupMidiPlayer(midiProcessorOptions) {
-  const playerContainerElement = document.getElementById(
-    'midi-player-container',
+async function setupMidiPlayer(
+  midiProcessorOptions: MidiMessageProcessorOptions,
+) {
+  /* eslint-disable no-console */
+  const playerContainerElementSelector = '#midi-player-container';
+  const playerContainerElement = document.querySelector<HTMLDivElement>(
+    playerContainerElementSelector,
   );
-  JZZ.synth.Tiny.register('Tiny WebAudio synthesizer');
-  const midiPlayerOptions = {
-    at: playerContainerElement,
-    ports: ['Tiny WebAudio synthesizer'],
-    file: true,
-  };
+  if (playerContainerElement === null) {
+    const errMsg = `No element matching query ${playerContainerElementSelector}.`;
+    throw new Error(errMsg);
+  }
+
   const midiProcessor = new MidiMessageProcessor(midiProcessorOptions);
-  const midiPlayer = new JZZ.gui.Player(midiPlayerOptions);
-  midiPlayer.connect(midiProcessor.process.bind(midiProcessor));
-  registerMidiMessageEventHandlers(midiProcessor);
+  const midiDataCallback = midiProcessor.process.bind(midiProcessor);
+  createJzzPlayer(playerContainerElement, midiDataCallback);
 
   let playerAutoHideTimeout = 0;
 
-  function showPlayer() {
+  const showPlayer = () => {
     playerContainerElement.style.opacity = '1.0';
     clearTimeout(playerAutoHideTimeout);
     playerAutoHideTimeout = setTimeout(() => {
       playerContainerElement.style.opacity = '0.0';
     }, 1000);
-  }
+  };
 
   showPlayer();
   window.addEventListener('mousemove', showPlayer);
 
+  console.log('Connected to built-in MIDI player.');
+
   return Promise.resolve(midiProcessor);
+  /* eslint-enable no-console */
 }
 
 async function main() {
-  const options = { channelMask: midiChannelMask };
-  const initializer = useMidiPlayer ? setupMidiPlayer : setupMidiInput;
-  const processor = await initializer(options);
+  const midiProcessorOptions = { channelMask: options.midiChannelMask };
+  const { midiPortName } = options;
+  let processor: MidiMessageProcessor;
+  if (typeof midiPortName !== 'undefined') {
+    processor = await setupMidiInput(midiPortName, midiProcessorOptions);
+  } else {
+    processor = await setupMidiPlayer(midiProcessorOptions);
+  }
   registerMidiMessageEventHandlers(processor);
 }
 
-main().catch((e) => console.log(e));
+// eslint-disable-next-line no-console
+main().catch((e) => console.error('Error during initialization.', e));
 
 /**
  * TODO:

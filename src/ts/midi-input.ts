@@ -27,7 +27,7 @@ export default class MidiInput {
     midiAccess: WebMidi.MIDIAccess,
     midiInputPortName: string,
     options: Partial<MidiInputOptions> = {},
-  ) {
+  ): Promise<MidiInput> {
     const portFilterPredicate = ({ name }: WebMidi.MIDIInput) =>
       name === midiInputPortName;
     const midiPorts = [...midiAccess.inputs.values()].filter(
@@ -66,7 +66,7 @@ export default class MidiInput {
     }
   }
 
-  getProcessor() {
+  getProcessor(): MidiMessageProcessor {
     return this.processor;
   }
 }

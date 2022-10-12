@@ -2,26 +2,13 @@ import Victor from 'victor';
 
 import Note from './note';
 import ADSREnvelope from './adsr-envelope';
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import { splat, config } from '../js/script';
-
-type Color = { r: number; g: number; b: number };
-function isColor(value: unknown): value is Color {
-  return (
-    value !== null &&
-    typeof value !== 'undefined' &&
-    'r' in value &&
-    'g' in value &&
-    'b' in value
-  );
-}
+import { Color, isColor } from './util';
+import { splat, config } from './script';
 
 export default class NoteEnvelopeSplash {
   static secondsPerRotation = 10;
 
-  protected note: Note;
+  readonly note: Note;
 
   protected angleOffset: number;
 
