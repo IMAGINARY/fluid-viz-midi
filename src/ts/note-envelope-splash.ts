@@ -2,7 +2,7 @@ import Victor from 'victor';
 
 import Note from './note';
 import ADSREnvelope from './adsr-envelope';
-import { Color, isColor } from './util';
+import { RGBColor, isRGBColor } from './color';
 import { splat, config } from './script';
 
 export default class NoteEnvelopeSplash {
@@ -12,7 +12,7 @@ export default class NoteEnvelopeSplash {
 
   protected angleOffset: number;
 
-  protected color: (t: number) => Color;
+  protected color: (t: number) => RGBColor;
 
   protected lastCoords: Victor;
 
@@ -20,14 +20,14 @@ export default class NoteEnvelopeSplash {
     midiNote: number,
     midiVelocity: number,
     envelope: ADSREnvelope,
-    color: Color | ((t: number) => Color),
+    color: RGBColor | ((t: number) => RGBColor),
   ) {
     this.note = new Note(midiNote, midiVelocity, envelope);
     this.angleOffset =
       (performance.now() * 0.001 * 2 * Math.PI) /
       NoteEnvelopeSplash.secondsPerRotation;
 
-    this.color = isColor(color) ? () => color : color;
+    this.color = isRGBColor(color) ? () => color : color;
 
     this.lastCoords = this.getPointerCoordinates();
     this.update();

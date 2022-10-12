@@ -1,7 +1,7 @@
 import ADSREnvelope from './adsr-envelope';
 import NoteEnvelopeSplash from './note-envelope-splash';
 import Note from './note';
-import { HSVtoRGB } from './script';
+import { generateRandomColor } from './color';
 
 const adsrEnvelope = new ADSREnvelope({
   attackDuration: 0.01,
@@ -74,8 +74,7 @@ function addADSRNoteSplash(
   const noteSplashList = channelNoteSplashLists[midiChannel];
   const adsr = channelEnvelopes[midiChannel];
   // FIXME: brightness should not be above 1.0; used here for backwards compatibility
-  const brightness = 0.15 * 10.0;
-  const color = HSVtoRGB(Math.random(), 1.0, brightness);
+  const color = generateRandomColor({});
   const noteSplash = new NoteEnvelopeSplash(
     midiNote,
     midiVelocity,
