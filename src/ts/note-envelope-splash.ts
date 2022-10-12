@@ -5,9 +5,18 @@ import ADSREnvelope from './adsr-envelope';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import { splat, generateColor, config } from '../js/script';
+import { splat, config } from '../js/script';
 
 type Color = { r: number; g: number; b: number };
+function isColor(value: unknown): value is Color {
+  return (
+    value !== null &&
+    typeof value !== 'undefined' &&
+    'r' in value &&
+    'g' in value &&
+    'b' in value
+  );
+}
 
 export default class NoteEnvelopeSplash {
   static secondsPerRotation = 10;
@@ -16,20 +25,22 @@ export default class NoteEnvelopeSplash {
 
   protected angleOffset: number;
 
-  protected color: Color;
+  protected color: (t: number) => Color;
 
   protected lastCoords: Victor;
 
-  constructor(midiNote: number, midiVelocity: number, envelope: ADSREnvelope) {
+  constructor(
+    midiNote: number,
+    midiVelocity: number,
+    envelope: ADSREnvelope,
+    color: Color | ((t: number) => Color),
+  ) {
     this.note = new Note(midiNote, midiVelocity, envelope);
     this.angleOffset =
       (performance.now() * 0.001 * 2 * Math.PI) /
       NoteEnvelopeSplash.secondsPerRotation;
 
-    this.color = generateColor();
-    this.color.r *= 10;
-    this.color.g *= 10;
-    this.color.b *= 10;
+    this.color = isColor(color) ? () => color : color;
 
     this.lastCoords = this.getPointerCoordinates();
     this.update();
@@ -68,8 +79,9 @@ export default class NoteEnvelopeSplash {
       .subtract(this.lastCoords)
       .multiply(new Victor(factor, factor));
     const attenuation = 40.0;
+    const color = this.color(this.note.elapsedTime());
     const radius = config.SPLAT_RADIUS * (1.0 - (1.0 - volume) ** 8.0);
-    splat(p.x, p.y, d.x, d.y, this.color, attenuation, radius);
+    splat(p.x, p.y, d.x, d.y, color, attenuation, radius);
     this.lastCoords = p;
   }
 }

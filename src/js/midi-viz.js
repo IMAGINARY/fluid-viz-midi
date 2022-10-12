@@ -8,6 +8,7 @@ import MidiInput from '../ts/midi-input.ts';
 import MidiMessageProcessor from '../ts/midi-message-processor.ts';
 import ADSREnvelope from '../ts/adsr-envelope.ts';
 import NoteEnvelopeSplash from '../ts/note-envelope-splash.ts';
+import { HSVtoRGB } from './script';
 
 JZZSynthTiny(JZZ);
 JZZMidiSmf(JZZ);
@@ -70,7 +71,15 @@ function addADSRNoteSplash(midiChannel, midiNote, midiVelocity) {
 
   const noteSplashList = channelNoteSplashLists[midiChannel];
   const adsr = channelEnvelopes[midiChannel];
-  const noteSplash = new NoteEnvelopeSplash(midiNote, midiVelocity, adsr);
+  // FIXME: brightness should not be above 1.0; used here for backwards compatibility
+  const brightness = 1.0 * 0.15 * 10.0;
+  const color = HSVtoRGB(Math.random(), 1.0, brightness);
+  const noteSplash = new NoteEnvelopeSplash(
+    midiNote,
+    midiVelocity,
+    adsr,
+    color,
+  );
   noteSplash.note.hold(channelHold[midiChannel]);
 
   noteSplashList.push(noteSplash);
