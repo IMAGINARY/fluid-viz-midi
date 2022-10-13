@@ -90,6 +90,5 @@ main().catch((e) => console.error('Error during initialization.', e));
 
 /**
  * TODO:
- *  - Prefer warm colors over cold colors
  *  - Loop through pre-defined sets of visualization parameters
  */
