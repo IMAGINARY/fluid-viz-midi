@@ -24,8 +24,9 @@ SOFTWARE.
 
 import * as dat from 'dat.gui';
 
-import shaderSources from '../ts/shader-sources';
-import { HSVtoRGB, generateRandomColor } from '../ts/color';
+import shaderSources from '../ts/shader-sources.ts';
+import Animator from '../ts/animator.ts';
+import { HSVtoRGB, generateRandomColor } from '../ts/color.ts';
 
 // Simulation section
 
@@ -864,9 +865,8 @@ updateKeywords();
 initFramebuffers();
 // multipleSplats(parseInt(Math.random() * 20) + 5);
 
-let lastUpdateTime = Date.now();
+let lastUpdateTime = performance.now();
 let colorUpdateTimer = 0.0;
-update();
 
 function update() {
   const dt = calcDeltaTime();
@@ -875,12 +875,14 @@ function update() {
   applyInputs();
   if (!config.PAUSED) step(dt);
   render(null);
-  requestAnimationFrame(update);
 }
 
+const animator = new Animator(update);
+animator.startNow(performance.now());
+
 function calcDeltaTime() {
-  const now = Date.now();
-  let dt = (now - lastUpdateTime) / 1000;
+  const now = performance.now();
+  let dt = now - lastUpdateTime;
   dt = Math.min(dt, 0.016666);
   lastUpdateTime = now;
   return dt;

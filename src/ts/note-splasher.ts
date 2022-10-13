@@ -1,6 +1,7 @@
 import ADSREnvelope from './adsr-envelope';
 import NoteEnvelopeSplash from './note-envelope-splash';
 import Note from './note';
+import Animator from './animator';
 import { generateRandomColor } from './color';
 
 const adsrEnvelope = new ADSREnvelope({
@@ -113,11 +114,8 @@ function reset() {
   }
 }
 
-function animateSplashes() {
-  requestAnimationFrame(animateSplashes);
-  updateADSRNoteSplashes();
-}
-animateSplashes();
+const splashAnimator = new Animator(updateADSRNoteSplashes);
+splashAnimator.startNow(performance.now());
 
 export {
   noteOn,
