@@ -201,7 +201,13 @@ function startGUI() {
   gui.add(config, 'SPLAT_RADIUS', 0.01, 0.4).name('splat radius');
   gui.add(config, 'SHADING').name('shading').onFinishChange(updateKeywords);
   gui.add(config, 'COLORFUL').name('colorful');
-  gui.add(config, 'PAUSED').name('paused').listen();
+  const paused = gui
+    .add(config, 'PAUSED')
+    .name('paused')
+    .onFinishChange(() => (config.PAUSED ? animator.pause() : animator.play()));
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyP') paused.setValue(!config.PAUSED);
+  });
 
   gui
     .add(
@@ -865,28 +871,16 @@ updateKeywords();
 initFramebuffers();
 // multipleSplats(parseInt(Math.random() * 20) + 5);
 
-let lastUpdateTime = performance.now();
-let colorUpdateTimer = 0.0;
-
-function update() {
-  const dt = calcDeltaTime();
+function update(animator) {
+  const dt = animator.delta() / 1000.0;
   if (resizeCanvas()) initFramebuffers();
   updateColors(dt);
   applyInputs();
-  if (!config.PAUSED) step(dt);
+  step(dt);
   render(null);
 }
-
-const animator = new Animator(update);
-animator.startNow(performance.now());
-
-function calcDeltaTime() {
-  const now = performance.now();
-  let dt = now - lastUpdateTime;
-  dt = Math.min(dt, 0.016666);
-  lastUpdateTime = now;
-  return dt;
-}
+const animator = new Animator(() => update(animator));
+animator.start();
 
 function resizeCanvas() {
   const width = scaleByPixelRatio(canvas.clientWidth);
@@ -1295,7 +1289,6 @@ window.addEventListener('touchend', (e) => {
 });
 
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyP') config.PAUSED = !config.PAUSED;
   if (e.key === ' ') splatStack.push(parseInt(Math.random() * 20) + 5);
 });
 
