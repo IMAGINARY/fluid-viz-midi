@@ -4,6 +4,7 @@
 
 import * as untyped from '../js/script.js';
 import { RGBColor } from './color';
+import config from './config';
 
 const splat: (
   x: number,
@@ -15,11 +16,4 @@ const splat: (
   radius = config.SPLAT_RADIUS,
 ) => void = untyped.splat;
 
-const HSVtoRGB: (h: number, s: number, v: number) => RGBColor =
-  untyped.HSVtoRGB;
-
-type Config = { RADIUS: number; SPLAT_RADIUS: number };
-
-const config: Config = untyped.config;
-
-export { splat, config };
+export { splat };

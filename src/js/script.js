@@ -24,44 +24,15 @@ SOFTWARE.
 
 import * as dat from 'dat.gui';
 
+import config from '../ts/config.ts';
 import shaderSources from '../ts/shader-sources.ts';
 import Animator from '../ts/animator.ts';
-import { HSVtoRGB, generateRandomColor } from '../ts/color.ts';
+import { generateRandomColor } from '../ts/color.ts';
 
 // Simulation section
 
 const canvas = document.getElementsByTagName('canvas')[0];
 resizeCanvas();
-
-const config = {
-  RADIUS: 0.5,
-  FADE_WIDTH: 0.025,
-  SIM_RESOLUTION: 256,
-  DYE_RESOLUTION: 1024,
-  CAPTURE_RESOLUTION: 512,
-  DENSITY_DISSIPATION: 2.0,
-  VELOCITY_DISSIPATION: 1.0,
-  PRESSURE: 0.8,
-  PRESSURE_ITERATIONS: 20,
-  CURL: 4,
-  SPLAT_RADIUS: 0.15,
-  SPLAT_FORCE: 6000,
-  SHADING: true,
-  COLORFUL: false,
-  COLOR_UPDATE_SPEED: 10,
-  PAUSED: false,
-  BACK_COLOR: { r: 0, g: 0, b: 0 },
-  TRANSPARENT: false,
-  BLOOM: false,
-  BLOOM_ITERATIONS: 8,
-  BLOOM_RESOLUTION: 256,
-  BLOOM_INTENSITY: 0.8,
-  BLOOM_THRESHOLD: 0.6,
-  BLOOM_SOFT_KNEE: 0.7,
-  SUNRAYS: true,
-  SUNRAYS_RESOLUTION: 196,
-  SUNRAYS_WEIGHT: 1.0,
-};
 
 function pointerPrototype() {
   this.id = -1;
@@ -1387,4 +1358,4 @@ function hashCode(s) {
   return hash;
 }
 
-export { splat, HSVtoRGB, config };
+export { splat };

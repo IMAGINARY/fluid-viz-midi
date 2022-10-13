@@ -3,7 +3,8 @@ import Victor from 'victor';
 import Note from './note';
 import ADSREnvelope from './adsr-envelope';
 import { RGBColor, isRGBColor } from './color';
-import { splat, config } from './script';
+import { splat } from './script';
+import config from './config';
 
 export default class NoteEnvelopeSplash {
   static secondsPerRotation = 10;
