@@ -4,9 +4,7 @@ enum AnimatorState {
   PAUSED,
 }
 
-export default class Animator {
-  protected callback: FrameRequestCallback;
-
+export default abstract class BaseAnimator {
   protected animationFrameId: ReturnType<typeof requestAnimationFrame> = 0;
 
   protected animationFrameHandler = this.animate.bind(this);
@@ -23,8 +21,7 @@ export default class Animator {
 
   protected currentCallTimestamp: DOMHighResTimeStamp = 0;
 
-  constructor(callback: FrameRequestCallback = () => {}) {
-    this.callback = callback;
+  protected constructor() {
     this.stop();
   }
 
@@ -83,6 +80,10 @@ export default class Animator {
     return this;
   }
 
+  setPaused(paused: boolean) {
+    return paused ? this.pause() : this.play();
+  }
+
   play(): this {
     if (this.getState() === AnimatorState.PAUSED) {
       this.state = AnimatorState.PLAYING;
@@ -105,6 +106,10 @@ export default class Animator {
     if (this.getState() === AnimatorState.PAUSED)
       this.playNowNoCheck(timestamp);
     return this;
+  }
+
+  setPlaying(playing: boolean) {
+    return playing ? this.play() : this.pause();
   }
 
   stop(): this {
@@ -140,12 +145,9 @@ export default class Animator {
     return this;
   }
 
-  protected getCallback(): FrameRequestCallback {
-    return this.callback;
-  }
-
-  protected setCallback(callback: FrameRequestCallback): this {
-    this.callback = callback;
-    return this;
-  }
+  protected abstract callback(
+    timestamp: DOMHighResTimeStamp,
+  ): ReturnType<FrameRequestCallback>;
 }
+
+export { AnimatorState };

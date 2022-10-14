@@ -1,7 +1,7 @@
 import ADSREnvelope from './adsr-envelope';
 import NoteEnvelopeSplash from './note-envelope-splash';
 import Note from './note';
-import Animator from './animator';
+import Animator from './animator/animator';
 import { generateRandomColor } from './color';
 
 const adsrEnvelope = new ADSREnvelope({

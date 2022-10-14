@@ -26,7 +26,7 @@ import * as dat from 'dat.gui';
 
 import config from '../ts/config.ts';
 import shaderSources from '../ts/shader-sources.ts';
-import Animator from '../ts/animator.ts';
+import Animator from '../ts/animator/animator.ts';
 import { generateRandomColor } from '../ts/color.ts';
 
 // Simulation section
@@ -175,7 +175,7 @@ function startGUI() {
   const paused = gui
     .add(config, 'PAUSED')
     .name('paused')
-    .onFinishChange(() => (config.PAUSED ? animator.pause() : animator.play()));
+    .onFinishChange(() => animator.setPaused(config.PAUSED));
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyP') paused.setValue(!config.PAUSED);
   });
