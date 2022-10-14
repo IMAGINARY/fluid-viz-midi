@@ -25,9 +25,14 @@ SOFTWARE.
 import * as dat from 'dat.gui';
 
 import config from '../ts/config.ts';
+import options from '../ts/options.ts';
 import shaderSources from '../ts/shader-sources.ts';
 import Animator from '../ts/animator/animator.ts';
 import { generateRandomColor } from '../ts/color.ts';
+import parameterSets from '../ts/parameter-sets.ts';
+import ParameterAnimator, {
+  filterParameters,
+} from '../ts/parameter-animator.ts';
 
 // Simulation section
 
@@ -165,11 +170,17 @@ function startGUI() {
     .onFinishChange(initFramebuffers);
   gui.add(config, 'RADIUS', 0.0, Math.sqrt(2.0) / 2.0).name('radius');
   gui.add(config, 'FADE_WIDTH', 0.0, Math.sqrt(2.0) / 2.0).name('fade width');
-  gui.add(config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
-  gui.add(config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
-  gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
-  gui.add(config, 'CURL', 0, 50).name('vorticity').step(1);
-  gui.add(config, 'SPLAT_RADIUS', 0.01, 0.4).name('splat radius');
+  gui
+    .add(config, 'DENSITY_DISSIPATION', 0, 4.0)
+    .name('density diffusion')
+    .listen();
+  gui
+    .add(config, 'VELOCITY_DISSIPATION', 0, 4.0)
+    .name('velocity diffusion')
+    .listen();
+  gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure').listen();
+  gui.add(config, 'CURL', 0, 50).name('vorticity').step(1).listen();
+  gui.add(config, 'SPLAT_RADIUS', 0.01, 0.4).name('splat radius').listen();
   gui.add(config, 'SHADING').name('shading').onFinishChange(updateKeywords);
   gui.add(config, 'COLORFUL').name('colorful');
   const paused = gui
@@ -210,6 +221,18 @@ function startGUI() {
   captureFolder.addColor(config, 'BACK_COLOR').name('background color');
   captureFolder.add(config, 'TRANSPARENT').name('transparent');
   captureFolder.add({ fun: captureScreenshot }, 'fun').name('take screenshot');
+
+  const parameterAnimationFolder = gui.addFolder('Parameter animation');
+  parameterAnimationFolder
+    .add(config, 'ANIMATE_PARAMETERS')
+    .name('enabled')
+    .onFinishChange(() =>
+      parameterAnimator.setPaused(config.ANIMATE_PARAMETERS),
+    );
+  parameterAnimationFolder
+    // eslint-disable-next-line no-console
+    .add({ fun: () => console.log(filterParameters(config)) }, 'fun')
+    .name('log animatable parameters to console');
 
   if (isMobile()) {
     gui.close();
@@ -852,6 +875,9 @@ function update(animator) {
 }
 const animator = new Animator(() => update(animator));
 animator.start();
+
+const parameterAnimator = new ParameterAnimator(config, parameterSets);
+parameterAnimator.start().setPlaying(config.ANIMATE_PARAMETERS);
 
 function resizeCanvas() {
   const width = scaleByPixelRatio(canvas.clientWidth);

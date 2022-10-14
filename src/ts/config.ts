@@ -1,3 +1,5 @@
+import options from './options';
+
 type Config = {
   RADIUS: number;
   FADE_WIDTH: number;
@@ -57,7 +59,7 @@ const config = {
   SUNRAYS: true,
   SUNRAYS_RESOLUTION: 196,
   SUNRAYS_WEIGHT: 1.0,
-  ANIMATE_PARAMETERS: true,
+  ANIMATE_PARAMETERS: !options.pauseParameterAnimation,
 };
 
 export default config;

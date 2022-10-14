@@ -87,8 +87,3 @@ async function main() {
 
 // eslint-disable-next-line no-console
 main().catch((e) => console.error('Error during initialization.', e));
-
-/**
- * TODO:
- *  - Loop through pre-defined sets of visualization parameters
- */

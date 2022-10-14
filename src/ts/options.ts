@@ -1,6 +1,7 @@
 type Options = {
   midiPortName?: string;
   midiChannelMask: number;
+  pauseParameterAnimation: boolean;
 };
 
 function parseMidiChannelMask(mask: string | null, defaultMask: number) {
@@ -27,10 +28,12 @@ function getOptions(): Options {
     searchParams.get('midiChannelMask'),
     defaultMask,
   );
+  const pauseParameterAnimation = searchParams.has('pauseParameterAnimation');
 
   return {
     midiChannelMask,
     ...(midiPortName === null ? {} : { midiPortName }),
+    pauseParameterAnimation,
   };
 }
 
