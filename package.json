@@ -26,7 +26,8 @@
   "source": "src/html/index.html",
   "targets": {
     "default": {
-      "distDir": "./"
+      "distDir": "./",
+      "publicUrl": "./"
     }
   },
   "engines": {
