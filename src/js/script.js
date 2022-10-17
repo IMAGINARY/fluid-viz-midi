@@ -544,7 +544,8 @@ const bloomFramebuffers = [];
 let sunrays;
 let sunraysTemp;
 
-const ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
+const ditheringTextureUrl = new URL('../img/LDR_LLL1_0.png', import.meta.url);
+const ditheringTexture = createTextureAsync(ditheringTextureUrl);
 
 const blurProgram = new Program(blurVertexShader, blurShader);
 const copyProgram = new Program(baseVertexShader, copyShader);
