@@ -76,7 +76,7 @@
     "(?!index.html)$": "dist/[name].[hash].[type]"
   },
   "scripts": {
-    "serve": "parcel serve",
+    "serve": "parcel serve --dist-dir dist-dev",
     "build": "parcel build",
     "format": "prettier -w .",
     "lint": "eslint src",
