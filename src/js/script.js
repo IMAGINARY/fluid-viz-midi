@@ -227,7 +227,7 @@ function startGUI() {
     .add(config, 'ANIMATE_PARAMETERS')
     .name('enabled')
     .onFinishChange(() =>
-      parameterAnimator.setPaused(config.ANIMATE_PARAMETERS),
+      parameterAnimator.setPlaying(config.ANIMATE_PARAMETERS),
     );
   parameterAnimationFolder
     // eslint-disable-next-line no-console
