@@ -467,6 +467,7 @@ const sunrayShader = compileShader(
 const splatShader = compileShader(
   gl.FRAGMENT_SHADER,
   shaderSources.fragment.splat,
+  [`MAX_NUM_SPLATS (${options.splatGroupSize}u)`],
 );
 const advectionShader = compileShader(
   gl.FRAGMENT_SHADER,
@@ -870,6 +871,7 @@ function update(animator) {
   if (resizeCanvas()) initFramebuffers();
   updateColors(dt);
   applyInputs();
+  processSplatQueue();
   step(dt);
   render(null);
 }
@@ -1197,6 +1199,71 @@ function multipleSplats(amount) {
   }
 }
 
+const splatQueue = [];
+function processSplatQueue() {
+  if (splatQueue.length === 0) return;
+
+  splatProgram.bind();
+  gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
+  const maxNumSplats = options.splatGroupSize;
+  for (
+    let chunkStart = 0;
+    chunkStart < splatQueue.length;
+    chunkStart += maxNumSplats
+  ) {
+    gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
+    const chunkSize = Math.min(splatQueue.length - chunkStart, maxNumSplats);
+    gl.uniform1ui(splatProgram.uniforms.numSplats, chunkSize);
+    for (let i = 0; i < chunkSize; i += 1) {
+      const { x, y, dx, dy, attenuation, radius } = splatQueue[chunkStart + i];
+      gl.uniform2f(splatProgram.uniforms[`splats[${i}].point`], x, y);
+      gl.uniform3f(splatProgram.uniforms[`splats[${i}].color`], dx, dy, 0.0);
+      gl.uniform1f(
+        splatProgram.uniforms[`splats[${i}].radius`],
+        correctRadius(radius / 100.0),
+      );
+      gl.uniform1f(
+        splatProgram.uniforms[`splats[${i}].attenuation`],
+        attenuation,
+      );
+    }
+    blit(velocity.write);
+    velocity.swap();
+  }
+
+  for (
+    let chunkStart = 0;
+    chunkStart < splatQueue.length;
+    chunkStart += maxNumSplats
+  ) {
+    gl.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0));
+    const chunkSize = Math.min(splatQueue.length - chunkStart, maxNumSplats);
+    gl.uniform1ui(splatProgram.uniforms.numSplats, chunkSize);
+    for (let i = 0; i < chunkSize; i += 1) {
+      const { x, y, color, attenuation, radius } = splatQueue[chunkStart + i];
+      gl.uniform2f(splatProgram.uniforms[`splats[${i}].point`], x, y);
+      gl.uniform3f(
+        splatProgram.uniforms[`splats[${i}].color`],
+        color.r,
+        color.g,
+        color.b,
+      );
+      gl.uniform1f(
+        splatProgram.uniforms[`splats[${i}].radius`],
+        correctRadius(radius / 100.0),
+      );
+      gl.uniform1f(
+        splatProgram.uniforms[`splats[${i}].attenuation`],
+        attenuation,
+      );
+    }
+    blit(dye.write);
+    dye.swap();
+  }
+
+  splatQueue.splice(0);
+}
+
 function splat(
   x,
   y,
@@ -1206,20 +1273,7 @@ function splat(
   attenuation = 1.0,
   radius = config.SPLAT_RADIUS,
 ) {
-  splatProgram.bind();
-  gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
-  gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
-  gl.uniform2f(splatProgram.uniforms.point, x, y);
-  gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
-  gl.uniform1f(splatProgram.uniforms.radius, correctRadius(radius / 100.0));
-  gl.uniform1f(splatProgram.uniforms.attenuation, attenuation);
-  blit(velocity.write);
-  velocity.swap();
-
-  gl.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0));
-  gl.uniform3f(splatProgram.uniforms.color, color.r, color.g, color.b);
-  blit(dye.write);
-  dye.swap();
+  splatQueue.push({ x, y, dx, dy, color, attenuation, radius });
 }
 
 function correctRadius(radius) {

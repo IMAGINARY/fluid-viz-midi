@@ -7,15 +7,36 @@ out vec4 fragColor;
 in vec2 vUv;
 uniform sampler2D uTarget;
 uniform float aspectRatio;
-uniform vec3 color;
-uniform vec2 point;
-uniform float radius;
-uniform float attenuation;
+
+struct Splat {
+  vec3 color;
+  float radius;
+  vec2 point;
+  float attenuation;
+};
+
+uniform uint numSplats;
+
+/**
+ * Define MAX_NUM_SPLATS as a prepreocessor macro before compiling the shader.
+ * The default value of 64 should work on all WebGL 2 platforms.
+ */
+#ifndef MAX_NUM_SPLATS
+#define MAX_NUM_SPLATS (64)
+#endif
+
+uniform Splat splats[MAX_NUM_SPLATS];
 
 void main() {
-  vec2 p = vUv - point.xy;
-  p.x *= aspectRatio;
-  vec3 splat = exp(-dot(p, p) / radius) * color / attenuation;
+  vec3 combinedSplat = vec3(0.0, 0.0, 0.0);
+  for (uint i = 0u; i < numSplats; i += 1u) {
+    vec2 p = vUv - splats[i].point.xy;
+    p.x *= aspectRatio;
+    combinedSplat +=
+      exp(-dot(p, p) / splats[i].radius) *
+      splats[i].color /
+      splats[i].attenuation;
+  }
   vec3 base = texture(uTarget, vUv).xyz;
-  fragColor = vec4(base + splat, 1.0);
+  fragColor = vec4(base + combinedSplat, 1.0);
 }

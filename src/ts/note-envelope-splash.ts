@@ -69,7 +69,7 @@ export default class NoteEnvelopeSplash {
     const attenuation = 40.0;
     const color = this.color(this.note.elapsedTime());
     const radius = config.SPLAT_RADIUS * (1.0 - (1.0 - volume) ** 8.0);
-    splat(p.x, p.y, d.x, d.y, color, attenuation, radius);
+    if (radius > 0.0) splat(p.x, p.y, d.x, d.y, color, attenuation, radius);
     this.lastCoords = p;
   }
 }
