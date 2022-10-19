@@ -15,6 +15,7 @@ type ParameterAnimatorOptions = {
   onUpdate: (p: SimulationParameters) => unknown;
   tweenDuration: number;
   stayDuration: number;
+  initialize: boolean;
 };
 
 function filterParameters(
@@ -40,6 +41,7 @@ const defaultOptions: ParameterAnimatorOptions = {
   onUpdate: () => {},
   tweenDuration: 10 * 1000,
   stayDuration: 5 * 1000,
+  initialize: true,
 };
 
 export default class ParameterAnimator extends BaseAnimator {
@@ -66,8 +68,12 @@ export default class ParameterAnimator extends BaseAnimator {
     this.parameters = parameterSet;
     this.parameterSets = parameterSets;
     this.options = { ...defaultOptions, ...options };
-    this.source = { ...this.parameters };
     this.target = this.getNextParameterSet();
+    if (this.options.initialize) {
+      const tween = ParameterAnimator.tween(this.parameters, this.target, 1.0);
+      Object.assign(this.parameters, tween);
+    }
+    this.source = { ...this.parameters };
   }
 
   protected callback(timestamp: DOMHighResTimeStamp) {
