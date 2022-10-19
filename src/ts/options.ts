@@ -36,7 +36,7 @@ function parseSplatGroupSize(size: string | null, defaultSize: number) {
 function getOptions(): Options {
   const searchParams = new URLSearchParams(window.location.search);
 
-  const midiPortName = searchParams.get('midiPort');
+  const midiPortName = searchParams.get('midiPortName');
   const defaultMask = 0b1111111111111111;
   const midiChannelMask = parseMidiChannelMask(
     searchParams.get('midiChannelMask'),
