@@ -17,7 +17,7 @@ Some options of the app can be configured via URL parameters:
   available.
 - `midiChannelMask` (number; default: `1111111111111111`): Use the MIDI channels
   marked with `1`, ignore MIDI channels marked with `0`. Channel 1 corresponds
-  to the leftmost character, Channel 16 to the rightmost.
+  to the rightmost character, Channel 16 to the leftmost.
 - `pauseParameterAnimation` (boolean; default: `false`): Pause the built-in
   animation of the visualization parameters.
 - `splatGroupSize` (number; default: `64`): Control how many notes are rendered
