@@ -29,6 +29,8 @@ type Config = {
   SUNRAYS_RESOLUTION: number;
   SUNRAYS_WEIGHT: number;
   ANIMATE_PARAMETERS: boolean;
+  MIDI_VELOCITY_FACTOR: number;
+  MIDI_VELOCITY_OFFSET: number;
 };
 
 const config = {
@@ -60,6 +62,8 @@ const config = {
   SUNRAYS_RESOLUTION: 196,
   SUNRAYS_WEIGHT: 1.0,
   ANIMATE_PARAMETERS: !options.pauseParameterAnimation,
+  MIDI_VELOCITY_FACTOR: options.midiVelocityFactor,
+  MIDI_VELOCITY_OFFSET: options.midiVelocityOffset,
 };
 
 export default config;

@@ -36,7 +36,12 @@ export default class NoteEnvelopeSplash {
 
   getInterpolationParameter() {
     const t = this.note.elapsedTime();
-    const speed = this.note.midiVelocity / 127.0;
+    const mappedVelocity = Math.min(
+      config.MIDI_VELOCITY_FACTOR * this.note.midiVelocity +
+        config.MIDI_VELOCITY_OFFSET,
+      127.0,
+    );
+    const speed = mappedVelocity / 127.0;
     return 1.0 / (-1.0 - speed * t) ** 2.0 + 1.0;
   }
 
@@ -60,6 +65,11 @@ export default class NoteEnvelopeSplash {
 
   update() {
     const volume = this.note.getVolume();
+    const mappedVolume = Math.min(
+      config.MIDI_VELOCITY_FACTOR * volume +
+        config.MIDI_VELOCITY_OFFSET / 127.0,
+      1.0,
+    );
     const factor = 100000.0 * volume;
     const p = this.getPointerCoordinates();
     const d = p

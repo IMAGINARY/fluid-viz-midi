@@ -18,6 +18,10 @@ Some options of the app can be configured via URL parameters:
 - `midiChannelMask` (number; default: `1111111111111111`): Use the MIDI channels
   marked with `1`, ignore MIDI channels marked with `0`. Channel 1 corresponds
   to the rightmost character, Channel 16 to the leftmost.
+- `midiVelocityFactor` (number; default: `1.0`): Factor to apply to the MIDI
+  note velocity.
+- `midiVelocityOffset` (number; default: `0.0`): Offset to add to the MIDI note
+  velocity.
 - `pauseParameterAnimation` (boolean; default: `false`): Pause the built-in
   animation of the visualization parameters.
 - `splatGroupSize` (number; default: `64`): Control how many notes are rendered

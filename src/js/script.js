@@ -234,6 +234,13 @@ function startGUI() {
     .add({ fun: () => console.log(filterParameters(config)) }, 'fun')
     .name('log animatable parameters to console');
 
+  gui
+    .add(config, 'MIDI_VELOCITY_FACTOR', 0.0, 10.0)
+    .name('MIDI velocity factor');
+  gui
+    .add(config, 'MIDI_VELOCITY_OFFSET', 0.0, 127.0)
+    .name('MIDI velocity offset');
+
   if (isMobile()) {
     gui.close();
   } else {
