@@ -4,6 +4,7 @@ type Options = {
   midiVelocityOffset: number;
   midiVelocityFactor: number;
   pauseParameterAnimation: boolean;
+  idleTimeout: number;
   splatGroupSize: number;
 };
 
@@ -13,6 +14,7 @@ const defaultOptions: Options = {
   splatGroupSize: 64,
   midiVelocityOffset: 0,
   midiVelocityFactor: 1.0,
+  idleTimeout: 60,
 };
 
 function parseMidiChannelMask(mask: string | null) {
@@ -75,6 +77,19 @@ function parseMidiVelocityFactor(midiVelocityFactor: string | null) {
   return num;
 }
 
+function parseIdleTimeout(seconds: string | null) {
+  if (seconds === null) return defaultOptions.idleTimeout;
+
+  if (!/^[1-9][0-9]*$/.test(seconds)) {
+    const errorMessage = `Idle timeout "${seconds}" has invalid format. It must be a positive integer. Falling back to the default idle timeout ${defaultOptions.idleTimeout}.`;
+    // eslint-disable-next-line no-console
+    console.error(errorMessage);
+    return defaultOptions.idleTimeout;
+  }
+
+  return Number.parseInt(seconds, 10);
+}
+
 function getOptions(): Options {
   const searchParams = new URLSearchParams(window.location.search);
 
@@ -89,6 +104,7 @@ function getOptions(): Options {
     searchParams.get('midiVelocityFactor'),
   );
   const pauseParameterAnimation = searchParams.has('pauseParameterAnimation');
+  const idleTimeout = parseIdleTimeout(searchParams.get('idleTimeout'));
   const splatGroupSize = parseSplatGroupSize(
     searchParams.get('splatGroupSize'),
   );
@@ -99,6 +115,7 @@ function getOptions(): Options {
     midiVelocityOffset,
     midiVelocityFactor,
     pauseParameterAnimation,
+    idleTimeout,
     splatGroupSize,
   };
 }

@@ -24,6 +24,8 @@ Some options of the app can be configured via URL parameters:
   velocity.
 - `pauseParameterAnimation` (boolean; default: `false`): Pause the built-in
   animation of the visualization parameters.
+- `idleTimeout` (number; default: 60): Pause the animation after the given
+  number of seconds without input to reduce system load.
 - `splatGroupSize` (number; default: `64`): Control how many notes are rendered
   together. For internal use, mostly.
 

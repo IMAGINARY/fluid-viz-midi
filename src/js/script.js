@@ -23,6 +23,11 @@ SOFTWARE.
 */
 
 import * as dat from 'dat.gui';
+import {
+  Idler,
+  PointerInterrupter,
+  KeyboardInterrupter,
+} from '@imaginary-maths/idler';
 
 import config from '../ts/config.ts';
 import options from '../ts/options.ts';
@@ -33,6 +38,14 @@ import parameterSets from '../ts/parameter-sets.ts';
 import ParameterAnimator, {
   filterParameters,
 } from '../ts/parameter-animator.ts';
+
+const idler = new Idler(new PointerInterrupter(), new KeyboardInterrupter());
+
+idler.addCallback({
+  delay: options.idleTimeout * 1000,
+  onBegin: () => animator.setPlaying(false),
+  onEnd: () => animator.setPlaying(!config.PAUSED),
+});
 
 // Simulation section
 
@@ -1281,6 +1294,7 @@ function splat(
   attenuation = 1.0,
   radius = config.SPLAT_RADIUS,
 ) {
+  idler.interrupt();
   splatQueue.push({ x, y, dx, dy, color, attenuation, radius });
 }
 
